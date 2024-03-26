@@ -18,7 +18,7 @@ func NewAPIServerCommand() (cmd *cobra.Command) {
 		Long: `The Tensor-v1-platform API server validates and configures data for the API objects. 
 The API Server services REST operations and through which all other components interact.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			verflag.PrintAndExitIfRequested() // 不是报错（吧）
+			verflag.PrintAndExitIfRequested() // 不是报错
 
 			if errs := s.Validate(); len(errs) != 0 {
 				return utilerrors.NewAggregate(errs)

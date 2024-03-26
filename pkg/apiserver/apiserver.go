@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/robfig/cron/v3"
 	"net/http"
+	"v1/pkg/apis/v1/auth"
+	"v1/pkg/apis/v1/system"
 
 	"v1/pkg/apiserver/middleware"
 	"v1/pkg/client/cache"
@@ -74,10 +76,10 @@ func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
 
 // add API Group
 func (s *APIServer) installAPIs() {
-	// apiV1Group := s.router.Group("/api/v1")
-	// apiV1Group.Use(middleware.AddAuditLog(s.RDBClient))
-	// auth.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
-	// system.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
+	apiV1Group := s.router.Group("/api/v1")
+	apiV1Group.Use(middleware.AddAuditLog(s.RDBClient))
+	auth.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
+	system.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
 	// credentials.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
 	// risk.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient, s.Sched)
 	// assets.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient, s.Sched)

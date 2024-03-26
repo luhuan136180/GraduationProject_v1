@@ -3,6 +3,7 @@ package apiserver
 import (
 	"context"
 	"encoding/csv"
+	"v1/pkg/utils"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"os"
@@ -57,8 +58,18 @@ func initSuperAdmin(ctx context.Context, db *gorm.DB) error {
 	}
 
 	// 初始化超管
-	_, err = dao.InsertUser(ctx, db, model.SuperAdminUsername, model.SuperAdminDefaultPassword,
-		"默认管理员", model.SystemUsername, "", "", model.RoleTypeSuperAdmin)
+	_, err = dao.InsertUser(ctx, db, model.User{
+		UID:      utils.NextID(),
+		Username: model.SuperAdminUsername,
+		Password: utils.MD5Hex(model.SuperAdminDefaultPassword),
+		Name:     "默认管理员",
+		Creator:  model.SystemUsername,
+		Updater:  model.SystemUsername,
+		Status:   model.UserStatusNormal,
+		Phone:    "",
+		Emial:    "",
+		Role:     model.RoleTypeSuperAdmin,
+	})
 	if err != nil {
 		zap.L().Error("initSuperAdmin error", zap.Error(err))
 	}

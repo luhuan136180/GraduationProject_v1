@@ -8,8 +8,8 @@ import (
 type Payload struct {
 	ID       int64          `json:"id"`
 	UID      string         `json:"uid"`
-	Username string         `json:"username"`
-	Name     string         `json:"name"`
+	Username string         `json:"username"` // 用户名
+	Name     string         `json:"name"`     // 昵称
 	Role     model.RoleType `json:"role"`
 }
 

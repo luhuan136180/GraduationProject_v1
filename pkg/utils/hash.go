@@ -55,22 +55,14 @@ func HashHex(h crypto.Hash, str string) (string, error) {
 	return hex.EncodeToString(hashed), nil
 }
 
-func HashPolicyID(platform, service, policy string) string {
-	return MD5Hex(platform + "$" + service + "$" + policy)
+func HashCollegeID(CollegeName string) string {
+	return MD5Hex(fmt.Sprintf("%s$", CollegeName))
 }
 
-func HashServiceID(platform, service string) string {
-	return MD5Hex(platform + "$" + service)
+func HashProfessionID(CollegeHashID, ProfessionName string) string {
+	return MD5Hex(fmt.Sprintf("%s$%s", CollegeHashID, ProfessionName))
 }
 
-func HashRegionID(platform, region string) string {
-	return MD5Hex(platform + "$" + region)
-}
-
-func HashAssetsID(credentialID int64, region, service, instanceId string) string {
-	return MD5Hex(fmt.Sprintf("%d$%s$%s$%s", credentialID, region, service, instanceId))
-}
-
-func HashRiskID(credentialID int64, assetHashID string, policyID string) string {
-	return MD5Hex(fmt.Sprintf("%d$%s$%s", credentialID, assetHashID, policyID))
+func HashClassID(professionHashID, className string, classID int) string {
+	return MD5Hex(fmt.Sprintf("%s$%s$%d", professionHashID, className, classID))
 }
