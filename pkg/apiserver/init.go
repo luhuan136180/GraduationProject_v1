@@ -111,6 +111,16 @@ func initConfig(ctx context.Context, db *gorm.DB) error {
 		zap.L().Fatal("writePolicies fails", zap.Error(err))
 	}
 
+	// config/user.csv
+	// data, err = readCsv("./configs/user.csv")
+	// if err != nil {
+	// 	zap.L().Fatal("read file policy fails", zap.Error(err))
+	// }
+	// err = writeUser(ctx, db, data)
+	// if err != nil {
+	// 	zap.L().Fatal("writePolicies fails", zap.Error(err))
+	// }
+
 	return nil
 }
 
@@ -324,7 +334,96 @@ func writeClass(ctx context.Context, db *gorm.DB, data [][]string, cmap map[stri
 		deletePids = append(deletePids, pid)
 	}
 
-	err = db.WithContext(ctx).Where("class_hash_id in ?", deletePids).Delete(&model.Profession{}).Error
+	err = db.WithContext(ctx).Where("class_hash_id in ?", deletePids).Delete(&model.Class{}).Error
+	if err != nil {
+		zap.L().Info("soft delete policies fails", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func writeUser(ctx context.Context, db *gorm.DB, data [][]string) error {
+	var err error
+
+	dbClasses := make([]model.Class, 0)
+	err = db.WithContext(ctx).Unscoped().Where("1 = 1").Find(&dbClasses).Error
+	if err != nil {
+		zap.L().Info("find db policies fails", zap.Error(err))
+		return err
+	}
+	dbcmap := make(map[string]model.Class)
+	for i := range dbClasses {
+		dbcmap[dbClasses[i].ClassHashID] = dbClasses[i]
+	}
+
+	professionNames := make([]string, 0)
+	for i := 1; i < len(data); i++ {
+		professionNames = append(professionNames, data[i][0])
+	}
+
+	professions, err := dao.GetProfessionByProfessionName(ctx, db, professionNames)
+	if err != nil {
+		zap.L().Info("find profession by name fails", zap.Error(err))
+		return err
+	}
+
+	pmap := make(map[string]model.Profession)
+	for i, _ := range professions {
+		pmap[professions[i].ProfessionName] = professions[i]
+	}
+
+	classmap := make(map[string]struct{})
+	for i := 1; i < len(data); i++ {
+		if _, ok := pmap[data[i][0]]; !ok && len(data[i][0]) != 0 {
+			zap.L().Error("invalid profession college_name", zap.String("college_name : ", data[i][0]))
+			return errors.New("invalid compliance catalog_id")
+		}
+
+		classID, _ := strconv.Atoi(data[i][2])
+		hashID := utils.HashClassID(pmap[data[i][0]].HashID, data[i][1], classID)
+		_, ok := classmap[hashID]
+		if ok {
+			continue
+		}
+		classmap[hashID] = struct{}{}
+
+		p := model.Class{
+			ProfessionHashID: pmap[data[i][0]].HashID,
+			ClassHashID:      hashID,
+			ClassName:        data[i][1],
+			ClassID:          classID,
+
+			Creator:   model.SystemUsername,
+			CreatedAt: time.Now().UnixMilli(),
+			Updater:   model.SystemUsername,
+			UpdatedAt: time.Now().UnixMilli(),
+		}
+		if _, ok := dbcmap[hashID]; ok {
+			// 已经存在的规则，更新
+			err = db.WithContext(ctx).Where("class_hash_id = ?", hashID).Updates(p).Error
+			if err != nil {
+				zap.L().Info("update profession fails", zap.Error(err))
+				continue
+			}
+		} else {
+			// 新增的规则，插入
+			err = db.WithContext(ctx).Create(p).Error
+			if err != nil {
+				zap.L().Info("create policy fails", zap.Error(err))
+				continue
+			}
+		}
+		// 遍历过后删除，遍历完成后map里还留下的policy就是被删除的policy，统一软删除
+		delete(dbcmap, hashID)
+	}
+	// 统一软删除
+	deletePids := make([]string, 0)
+	for pid := range dbcmap {
+		deletePids = append(deletePids, pid)
+	}
+
+	err = db.WithContext(ctx).Where("class_hash_id in ?", deletePids).Delete(&model.Class{}).Error
 	if err != nil {
 		zap.L().Info("soft delete policies fails", zap.Error(err))
 		return err

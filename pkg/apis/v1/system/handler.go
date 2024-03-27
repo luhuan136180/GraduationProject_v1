@@ -77,7 +77,7 @@ func (h *systemHandler) deleteUser(c *gin.Context) {
 
 	// 删除其他相关数据
 	// 简历的数据库信息
-	err = h.db.WithContext(ctx).Where("creator = ?", user.Username).Delete(&model.Resume{}).Error
+	err = h.db.WithContext(ctx).Where("user_uid = ?", user.UID).Delete(&model.Resume{}).Error
 	if err != nil {
 		zap.L().Error("delete user related assets failed", zap.Error(err))
 		encoding.HandleError(c, errutil.ErrDeleteUser)
@@ -245,15 +245,9 @@ func (h *systemHandler) getUserList(c *gin.Context) {
 
 	items := make([]userListItem, 0)
 	for _, user := range userList {
-		profession, ok := professionMap[user.ProfessionHashID]
-		if !ok {
-			continue
-		}
+		profession, _ := professionMap[user.ProfessionHashID]
 
-		class, ok := classMap[user.ClassHashID]
-		if !ok {
-			continue
-		}
+		class, _ := classMap[user.ClassHashID]
 
 		items = append(items, userListItem{
 			Account:  user.Username,

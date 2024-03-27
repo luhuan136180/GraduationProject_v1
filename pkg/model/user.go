@@ -82,7 +82,6 @@ func (Profession) TableName() string {
 }
 
 type Class struct {
-	ID               int64  `gorm:"primary_key;AUTO_INCREMENT"`
 	ProfessionHashID string `gorm:"column:profession_hash_id;not null; type:varchar(64)"`
 	ClassHashID      string `gorm:"column:class_hash_id;not null; type: varchar(64); index:idx_class_hash_id"`
 	ClassName        string `gorm:"not null"`

@@ -33,8 +33,8 @@ type (
 	}
 
 	getUserListReq struct {
-		Page int `form:"page"`
-		Size int `form:"size"`
+		Page int `json:"page"`
+		Size int `json:"size"`
 		model.UserOption
 	}
 
