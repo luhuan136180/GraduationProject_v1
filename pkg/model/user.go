@@ -54,22 +54,21 @@ type UserOption struct {
 type College struct {
 	ID          int64  `gorm:"primary_key;AUTO_INCREMENT"`
 	HashID      string `gorm:"not null; type:varchar(64); index:idx_college_hash_id"` // collegename + professionname
-	CollegeName string `gorm:"not null; type:varchar(32)"`
+	CollegeName string `gorm:"not null; type:varchar(32); index:idx_college_name"`
 	CollegeInfo string `gorm:"not null; type:varchar(32)"`
 
-	CreatedAt int64  `gorm:"column:created_at; not null; index:idx_created_at"`
+	CreatedAt int64  `gorm:"column:created_at; not null"`
 	Creator   string `gorm:"column:creator; not null; type:varchar(32)"`
 	UpdatedAt int64  `gorm:"not null; default:0"`
 	Updater   string `gorm:"column:updater; not null; type:varchar(32)"`
 }
 
 type Profession struct {
-	ID          int64  `gorm:"primary_key;AUTO_INCREMENT"`
 	HashID      string `gorm:"not null; type:varchar(64); index:idx_profession_hash_id"` // collegename + professionname
 	CollegeName string `gorm:"not null; type:varchar(32)"`
 	// CollegeInfo    string `gorm:"not null; type:varchar(32)"`
 	CollegeHashID  string `gorm:"column:college_hash_id"`
-	ProfessionName string `gorm:"not null; type:varchar(32)"`
+	ProfessionName string `gorm:"not null; type:varchar(32); index:idx_profession_name"`
 	ProfessionInfo string `gorm:"not null; type:varchar(32)"`
 
 	CreatedAt int64  `gorm:"column:created_at; not null; index:idx_created_at"`
@@ -97,6 +96,14 @@ type Class struct {
 
 func (Class) TableName() string {
 	return "classes"
+}
+
+type CollegeInfo struct {
+	Info string `json:"info"`
+}
+
+type ProfessionInfo struct {
+	Info string `json:"info"`
 }
 
 type Company struct {

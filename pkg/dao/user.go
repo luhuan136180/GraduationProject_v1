@@ -170,6 +170,12 @@ func GetProfessionsByHashIDs(ctx context.Context, db *gorm.DB, professionHashIDs
 	return professions, err
 }
 
+func GetProfessionByProfessionName(ctx context.Context, db *gorm.DB, professionNames []string) ([]model.Profession, error) {
+	var professions []model.Profession
+	err := db.WithContext(ctx).Model(&model.Profession{}).Where("profession_name in  (?)", professionNames).Find(&professions).Error
+	return professions, err
+}
+
 func InsertProfession(ctx context.Context, db *gorm.DB, professionInfo model.Profession) (*model.Profession, error) {
 	now := time.Now().UnixMilli()
 
