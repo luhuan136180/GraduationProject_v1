@@ -165,8 +165,8 @@ func GetProfessionByHashID(ctx context.Context, db *gorm.DB, professionHashID st
 }
 
 func GetProfessionsByHashIDs(ctx context.Context, db *gorm.DB, professionHashIDs []string) ([]model.Profession, error) {
-	var professions []model.Profession
-	err := db.WithContext(ctx).Model(&model.Profession{}).Where("hash_id in  (?)", professionHashIDs).Find(&professionHashIDs).Error
+	professions := make([]model.Profession, 0)
+	err := db.WithContext(ctx).Model(&model.Profession{}).Where("hash_id in  (?)", professionHashIDs).Find(&professions).Error
 	return professions, err
 }
 

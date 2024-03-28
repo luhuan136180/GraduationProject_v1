@@ -211,8 +211,12 @@ func (h *systemHandler) getUserList(c *gin.Context) {
 
 	var pisd, cids []string
 	for _, user := range userList {
-		pisd = append(pisd, user.ProfessionHashID)
-		cids = append(cids, user.ClassHashID)
+		if user.ProfessionHashID != "" {
+			pisd = append(pisd, user.ProfessionHashID)
+		}
+		if user.ClassHashID != "" {
+			cids = append(cids, user.ClassHashID)
+		}
 	}
 	// get profession
 	professions, err := dao.GetProfessionsByHashIDs(ctx, h.db, pisd)
