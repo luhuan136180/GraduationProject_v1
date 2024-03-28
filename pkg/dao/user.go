@@ -35,6 +35,15 @@ func GetUserByID(ctx context.Context, db *gorm.DB, id string) (bool, *model.User
 	return true, &u, nil
 }
 
+// 非系统模块用 uid
+func GetUserByUID(ctx context.Context, db *gorm.DB, uid string) (bool, *model.User, error) {
+	var user model.User
+	if err := db.WithContext(ctx).Model(&model.User{}).Where("uid = ?", uid).First(&user).Error; err != nil {
+		return false, &user, err
+	}
+	return true, &user, nil
+}
+
 func GetUserByAccount(ctx context.Context, db *gorm.DB, account string) (bool, *model.User, error) {
 	u, err := GetUserByUsername(ctx, db, account)
 	if err == gorm.ErrRecordNotFound {
@@ -197,6 +206,9 @@ func GetClassByHashID(ctx context.Context, db *gorm.DB, ClassHashID string) (boo
 	var ClassItem model.Class
 	err := db.WithContext(ctx).Model(&model.Class{}).Where("class_hash_id = ?", ClassHashID).First(&ClassItem).Error
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return false, ClassItem, nil
+		}
 		return false, ClassItem, err
 	}
 

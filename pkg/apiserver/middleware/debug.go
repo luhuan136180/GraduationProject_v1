@@ -16,6 +16,7 @@ func CheckToken(manager token.Manager, cacheClient cache.Interface) gin.HandlerF
 			ID:       1,
 			Username: "admin",
 			Name:     "admin",
+			UID:      "118321494483855902",
 			Role:     model.RoleTypeSuperAdmin,
 		})
 		c.Request = c.Request.WithContext(ctx)

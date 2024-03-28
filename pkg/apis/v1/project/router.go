@@ -20,11 +20,13 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 	projectG.DELETE("", handler.deleteProject)
 	projectG.GET("/list", handler.projectList)
 
-	projectG.GET("/:uid/list") // 用户相关列表
-	projectG.GET("/detail")    // 详情
-	projectG.GET("/changeStatus")
+	projectG.GET("/:uid/list", handler.getProjects) // 用户相关列表
+	projectG.GET("/detail", handler.projectDetail)  // 详情
+	projectG.GET("/changeStatus", handler.changeStatus)
 
-	projectG.GET("/choose") // 学生选择
-	projectG.GET("/audit")  // 审核
+	projectG.GET("/choose", handler.chooseProject) // 学生选择
+	projectG.GET("/audit", handler.auditProject)   // 审核
+	projectG.POST("/upload/file")                  // 提交文件
 
+	// projectG.GET("/")
 }

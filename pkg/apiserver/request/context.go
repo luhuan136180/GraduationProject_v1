@@ -67,6 +67,15 @@ func GetUserIdFromCtx(ctx context.Context) int64 {
 	return payload.ID
 }
 
+func GetUserUIDFromCtx(ctx context.Context) string {
+	payload, err := TokenPayloadFromCtx(ctx)
+	if err != nil {
+		zap.L().Warn("GetUsernameFromCtx 解析token错误", zap.Error(err))
+		return ""
+	}
+	return payload.UID
+}
+
 func GetRoleTypeFromCtx(ctx context.Context) model.RoleType {
 	payload, err := TokenPayloadFromCtx(ctx)
 	if err != nil {

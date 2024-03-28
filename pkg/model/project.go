@@ -10,6 +10,7 @@ const (
 	ProjectStatusProceed ProjectStatus = 3 // 进行
 	ProjectStatusFinish  ProjectStatus = 4 // 完成
 	ProjectStatusPASS    ProjectStatus = 5 // 通过审核
+
 )
 
 type Project struct {
@@ -26,7 +27,7 @@ type Project struct {
 	CreatorUID     string `gorm:"not null; index:idx_uid; type:varchar(32)"`
 	AuditUID       string `gorm:"column:audit_uid;not null; type:varchar(32)"` // admin
 	Auditor        string `gorm:"column:auditor;not null;type:varchar(32)"`
-	Participator   string `gorm:"type:varchar(64)"`
+	Participator   string `gorm:"type:varchar(64)"` // xuesheng
 	ParticipatorID string `gorm:"type:varchar(64)"`
 }
 
@@ -62,6 +63,10 @@ type ProjectSelectLog struct {
 	ID           int64  `gorm:"primary_key;AUTO_INCREMENT"`
 	ProjectID    int64  `gorm:"not null; type:varchar(32)"`
 	ProjectName  string `gorm:"not null; type:varchar(32)"`
-	applicant    string `gorm:"not null; type:varchar(32)"`
-	applicantUID string `gorm:"not null; type:varchar(32)"`
+	Applicant    string `gorm:"not null; type:varchar(32)"`
+	ApplicantUID string `gorm:"not null; type:varchar(32)"`
+}
+
+func (ProjectSelectLog) TableName() string {
+	return "projects"
 }
