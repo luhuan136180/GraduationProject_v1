@@ -45,7 +45,7 @@ func InsertResume(ctx context.Context, db *gorm.DB, resume model.Resume) (*model
 }
 
 func DeleteResumeByID(ctx context.Context, db *gorm.DB, id int64) error {
-	if err := db.WithContext(ctx).Where("id = ?", id).Delete(&model.User{}).Error; err != nil {
+	if err := db.WithContext(ctx).Where("id = ?", id).Delete(&model.Resume{}).Error; err != nil {
 		return err
 	}
 

@@ -11,6 +11,7 @@ const (
 	RoleTypeTeacher      RoleType = "Teacher"      // 老师
 	RoleTypeStudent      RoleType = "Student"      // 学生
 	RoleTypeNormal       RoleType = "User"         // 保留（预计给 企业 使用）
+	RoleTypeFirm         RoleType = "firm"         // 企业
 
 	SystemUsername            = "system"
 	SuperAdminUsername        = "admin"
