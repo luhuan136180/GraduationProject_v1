@@ -5,7 +5,9 @@ import (
 	"github.com/robfig/cron/v3"
 	"net/http"
 	"v1/pkg/apis/v1/auth"
+	"v1/pkg/apis/v1/interview"
 	"v1/pkg/apis/v1/project"
+	"v1/pkg/apis/v1/resume"
 	"v1/pkg/apis/v1/system"
 
 	"v1/pkg/apiserver/middleware"
@@ -82,8 +84,8 @@ func (s *APIServer) installAPIs() {
 	auth.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
 	system.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
 	project.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
-	// risk.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient, s.Sched)
-	// assets.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient, s.Sched)
+	resume.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
+	interview.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
 	// benchmarks.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
 	// dashboard.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
 	// common.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)

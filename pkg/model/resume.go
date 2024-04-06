@@ -7,7 +7,7 @@ type Resume struct {
 	UserName   string      `gorm:"not null; type；varchar(64)"`
 	ResumeName string      `gorm:"not null; type:varchar(32)"`
 	BasicInfo  interface{} `gorm:"not null; type:json; serializer:json"`
-	ProjectIDs []int64     `gorm:"not null; type:json; serializer:json"` // 绑定的项目ids
+	ProjectIDs []int64     `gorm:" type:json; serializer:json"` // 绑定的项目ids
 
 	Creator   string `gorm:"column:creator; not null; type:varchar(64)"`
 	CreatedAt int64  `gorm:"column:created_at; not null; index:idx_created_at"`

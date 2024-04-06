@@ -20,6 +20,6 @@ type (
 	}
 	resumeListResp struct {
 		Count      int64          `json:"count,omitempty"`
-		resumeList []model.Resume `json:"resume_list"`
+		ResumeList []model.Resume `json:"resume_list"`
 	}
 )

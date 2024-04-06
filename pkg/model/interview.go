@@ -15,7 +15,7 @@ const (
 type Interview struct {
 	ID    int64       `gorm:"primary_key;AUTO_INCREMENT"`
 	Ttile string      `gorm:"column:title; not null"`
-	Info  interface{} `gorm:"type:json"`
+	Info  interface{} `gorm:"type:json; serializer:json"`
 
 	Interviewee    string          `gorm:"column:interviewee; not null"` // 面试者_name
 	IntervieweeUID string          `gorm:"type:varchar(64); not null"`   // 面试者_uid
@@ -41,4 +41,14 @@ type InterviewInfo struct {
 	ContactInfo string `json:"contact_info"` // 联系方式
 
 	Interviewee string `json:"interviewee"` // 面试者
+}
+
+type InterviewOption struct {
+	Title string `json:"title"`
+
+	IntervieweeUID string `json:"interviewee_uid"`
+	CreatorUID     string `json:"creator_uid"`
+
+	Page int `json:"page"`
+	Size int `json:"size"`
 }

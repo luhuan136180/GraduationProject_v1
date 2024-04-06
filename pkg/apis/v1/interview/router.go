@@ -16,8 +16,12 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 
 	resumeG.Use(middleware.CheckToken(tokenManager, cacheClient))
 
-	resumeG.POST("/post", handler.createInterview)
+	resumeG.POST("", handler.createInterview)
 	resumeG.DELETE("", handler.deleteInterview)
-	// resumeG.GET("/list", handler.resumeList)
+	resumeG.GET("/list", handler.interviewList)
 
+	// 改变状态
+	resumeG.GET("/change", handler.interviewChangeStatus)
+	// 详情
+	resumeG.GET("/:id/detail", handler.interviewDetail)
 }

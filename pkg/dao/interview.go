@@ -33,3 +33,39 @@ func DeleteInterviewByID(ctx context.Context, db *gorm.DB, id int64) error {
 
 	return nil
 }
+
+func FindInterviewByOption(ctx context.Context, db *gorm.DB, option model.InterviewOption) (int64, []model.Interview, error) {
+	var interviews []model.Interview
+
+	if option.Title != "" {
+		db = db.Where("title = ?", option.Title)
+	}
+	if option.IntervieweeUID != "" {
+		db = db.Where("interviewee_uid = ?", option.IntervieweeUID)
+	}
+	if option.CreatorUID != "" {
+		db = db.Where("creator_uid = ?", option.CreatorUID)
+	}
+	var count int64
+	err := db.WithContext(ctx).Model(&model.Interview{}).Count(&count).Error
+	if err != nil {
+		return -1, nil, err
+	}
+
+	if option.Size != 0 && option.Page != 0 {
+		db = db.Limit(option.Size).Offset((option.Page - 1) * option.Size)
+	}
+
+	err = db.WithContext(ctx).Model(&model.Interview{}).Find(&interviews).Error
+
+	return count, interviews, err
+}
+
+func UpdateInterviewStatus(ctx context.Context, db *gorm.DB, id int64, status model.InterviewStatus) error {
+	changeInfo := map[string]interface{}{
+		"status": status,
+	}
+
+	err := db.WithContext(ctx).Model(&model.Interview{}).Where("id = ?", id).Updates(changeInfo).Error
+	return err
+}

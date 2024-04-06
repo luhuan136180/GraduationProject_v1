@@ -172,5 +172,5 @@ func (h *resumeHandler) resumeList(c *gin.Context) {
 		return
 	}
 
-	encoding.HandleSuccess(c, resumeListResp{Count: count, resumeList: resumeList})
+	encoding.HandleSuccess(c, resumeListResp{Count: count, ResumeList: resumeList})
 }
