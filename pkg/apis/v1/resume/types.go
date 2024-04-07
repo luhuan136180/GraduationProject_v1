@@ -22,4 +22,12 @@ type (
 		Count      int64          `json:"count,omitempty"`
 		ResumeList []model.Resume `json:"resume_list"`
 	}
+	resumeDetailResp struct {
+		ID              int64       `json:"id"`
+		UserUid         string      `json:"user_uid"`
+		UserName        string      `json:"user_name"`
+		ResumeName      string      `json:"resume_name"`
+		ResumeBasicInfo interface{} `json:"basic_info"`
+		ProjectIDs      []int64     `json:"project_ids"`
+	}
 )

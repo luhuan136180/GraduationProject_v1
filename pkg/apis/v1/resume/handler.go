@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"strconv"
 	v1 "v1/pkg/apis/v1"
 	"v1/pkg/apiserver/encoding"
 	"v1/pkg/apiserver/request"
@@ -173,4 +174,40 @@ func (h *resumeHandler) resumeList(c *gin.Context) {
 	}
 
 	encoding.HandleSuccess(c, resumeListResp{Count: count, ResumeList: resumeList})
+}
+
+func (h *resumeHandler) resumeDetail(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	idStr := c.Param("id")
+	if idStr == "" {
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		zap.L().Error("permission denied")
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	_, resume, err := dao.GetResumeByID(ctx, h.db, id)
+	if err != nil {
+		zap.L().Error("dao.GetInterviewByID", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	data := resumeDetailResp{
+		ID:              resume.ID,
+		UserUid:         resume.UserUid,
+		UserName:        resume.UserName,
+		ResumeName:      resume.ResumeName,
+		ResumeBasicInfo: resume.BasicInfo,
+		ProjectIDs:      resume.ProjectIDs,
+	}
+
+	encoding.HandleSuccess(c, data)
 }
