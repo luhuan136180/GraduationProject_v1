@@ -81,6 +81,11 @@ type (
 		CollegeHashID string `json:"college_hash_id"`
 	}
 
+	getCollegeTreeResp struct {
+		HashID      string `json:"hash_id"`
+		CollegeName string `json:"college_name"`
+	}
+
 	ceateProfessionReq struct {
 		CollegeHashID  string         `json:"college_hash_id"`
 		ProfessionName string         `json:"profession_name"`

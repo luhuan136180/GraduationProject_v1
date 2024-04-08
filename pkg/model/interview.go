@@ -3,12 +3,14 @@ package model
 type InterviewStatus string
 
 const (
+	// ps : 流转过程：
+	//  post - accept/refuse - processed - end
 	InterviewStatusPost    InterviewStatus = "Post"    // 发起
 	InterviewStatusAccept  InterviewStatus = "Accept"  // 接受
 	InterviewStatusRefuse  InterviewStatus = "refuse"  // 拒绝
 	InterviewStatusProceed InterviewStatus = "Proceed" // 进行
 	InterviewStatusFailed  InterviewStatus = "Failed"  // 失败
-
+	InterviewStatusEND     InterviewStatus = "End"     // 结束
 )
 
 // 面试

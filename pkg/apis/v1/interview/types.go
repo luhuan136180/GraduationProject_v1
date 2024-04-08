@@ -22,8 +22,17 @@ type (
 	}
 
 	interviewListResp struct {
-		Total int64             `json:"total"`
-		Data  []model.Interview `json:"data"`
+		Total int64                   `json:"total"`
+		Data  []interviewListRespData `json:"data"`
+	}
+
+	interviewListRespData struct {
+		ID             int64  `json:"id"`
+		Ttile          string `json:"ttile"`
+		Interviewee    string `json:"interviewee"`     // 面试者
+		IntervieweeUID string `json:"interviewee_uid"` // uid
+		Creator        string `json:"creator"`         // 面试创建者
+		CreatorUID     string `json:"creator_uid"`
 	}
 
 	interviewChangeStatusRep struct {

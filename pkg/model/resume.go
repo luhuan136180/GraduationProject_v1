@@ -19,8 +19,8 @@ func (Resume) TableName() string {
 
 type ResumeInfo struct {
 	Name           string `json:"name"`
-	CollegeName    string `json:"collegeName"`
-	PorfessionName string `json:"porfessionName"`
+	CollegeName    string `json:"college_hash_id"`
+	PorfessionName string `json:"porfession_hash_id"`
 	Describe       string `json:"describe"`
 	Experience     string `json:"experience"`
 }

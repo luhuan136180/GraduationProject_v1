@@ -76,6 +76,36 @@ func (h *resumeHandler) createResume(c *gin.Context) {
 	encoding.HandleSuccess(c, "success")
 }
 
+func (h *resumeHandler) projectTreeList(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	found, user, err := dao.GetUserByUID(ctx, h.db, request.GetUserUIDFromCtx(ctx))
+	if err != nil || !found {
+		zap.L().Error("get user info failed", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+	projectList := make([]model.Project, 0)
+	db := h.db.WithContext(ctx).Model(&model.Project{}).Where("participator_id = ?", user.UID)
+	err = db.Find(&projectList).Error
+	if err != nil {
+		zap.L().Error("get project failed", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	data := []projectBasicInfo{}
+	for _, project := range projectList {
+		data = append(data, projectBasicInfo{
+			ID:          project.ID,
+			ProjectName: project.ProjectName,
+		})
+	}
+
+	encoding.HandleSuccess(c, data)
+}
+
 func (h *resumeHandler) deleteResume(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
 	defer cancel()
@@ -141,14 +171,14 @@ func (h *resumeHandler) resumeList(c *gin.Context) {
 	var count int64
 
 	db := h.db.Model(&model.Resume{})
-	if request.GetRoleTypeFromCtx(ctx) == model.RoleTypeStudent {
+	if request.GetRoleTypeFromCtx(ctx) == model.RoleTypeStudent { // 学生只能看到自己的
 		db = db.Where("creator = ?", user.Username)
 	} else {
 		db = db.Where("user_name = (?)", req.UserName)
 	}
 
 	if req.Title != "" {
-		db = db.Where("resume_name = ?", req.Title)
+		db = db.Where("resume_name like ?", "%"+req.Title+"%")
 	}
 
 	if req.StartAt != "" {
@@ -172,8 +202,17 @@ func (h *resumeHandler) resumeList(c *gin.Context) {
 		encoding.HandleError(c, errutil.ErrIllegalParameter)
 		return
 	}
+	var data []resumeListRespData
+	for _, resume := range resumeList {
+		data = append(data, resumeListRespData{
+			ID:         resume.ID,
+			ResumeName: resume.ResumeName,
+			UserUID:    resume.UserUid,
+			UserName:   resume.UserName,
+		})
+	}
 
-	encoding.HandleSuccess(c, resumeListResp{Count: count, ResumeList: resumeList})
+	encoding.HandleSuccess(c, resumeListResp{Count: count, ResumeList: data})
 }
 
 func (h *resumeHandler) resumeDetail(c *gin.Context) {

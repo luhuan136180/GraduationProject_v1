@@ -583,6 +583,29 @@ func (h *systemHandler) deleteCollege(c *gin.Context) {
 	encoding.HandleSuccess(c)
 }
 
+func (h *systemHandler) getCollegeTree(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	colleges, err := dao.GetColleges(ctx, h.db)
+	if err != nil {
+		zap.L().Error("dao.GetProfessions", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrDeleteUser)
+		return
+	}
+
+	var data []getCollegeTreeResp
+
+	for _, college := range colleges {
+		data = append(data, getCollegeTreeResp{
+			HashID:      college.HashID,
+			CollegeName: college.CollegeName,
+		})
+	}
+
+	encoding.HandleSuccess(c, data)
+}
+
 func (s *systemHandler) createProfession(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
 	defer cancel()

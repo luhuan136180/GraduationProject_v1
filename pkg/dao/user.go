@@ -163,6 +163,12 @@ func DeleteCollege(ctx context.Context, db *gorm.DB, hashID string) error {
 	return db.WithContext(ctx).Where("hash_id = ?", hashID).Delete(&model.College{}).Error
 }
 
+func GetColleges(ctx context.Context, db *gorm.DB) ([]*model.College, error) {
+	var colleges []*model.College
+	err := db.WithContext(ctx).Model(&model.College{}).Find(&colleges).Error
+	return colleges, err
+}
+
 // profession
 func GetProfessionByHashID(ctx context.Context, db *gorm.DB, professionHashID string) (bool, model.Profession, error) {
 	var professionItem model.Profession

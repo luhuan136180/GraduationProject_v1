@@ -172,7 +172,7 @@ func (h *interviewHandler) interviewList(c *gin.Context) {
 			Title:          req.Title,
 			IntervieweeUID: user.UID,
 		})
-	} else if user.Role == model.RoleTypeFirm {
+	} else if user.Role == model.RoleTypeFirm || user.Role == model.RoleTypeSuperAdmin {
 		count, interviews, err = dao.FindInterviewByOption(ctx, h.db, model.InterviewOption{
 			Size: req.Size,
 			Page: req.Page,
@@ -187,7 +187,20 @@ func (h *interviewHandler) interviewList(c *gin.Context) {
 		return
 	}
 
-	encoding.HandleSuccess(c, interviewListResp{Total: count, Data: interviews})
+	data := []interviewListRespData{}
+
+	for _, interview := range interviews {
+		data = append(data, interviewListRespData{
+			ID:             interview.ID,
+			Ttile:          interview.Ttile,
+			Interviewee:    interview.Interviewee,
+			IntervieweeUID: interview.IntervieweeUID,
+			Creator:        interview.Creator,
+			CreatorUID:     interview.CreatorUID,
+		})
+	}
+
+	encoding.HandleSuccess(c, interviewListResp{Total: count, Data: data})
 }
 
 func (h interviewHandler) interviewChangeStatus(c *gin.Context) {

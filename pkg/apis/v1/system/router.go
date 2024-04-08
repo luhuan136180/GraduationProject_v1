@@ -28,6 +28,7 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 	// college
 	systemG.POST("/colleges", handler.createCollege) //
 	systemG.DELETE("/colleges", handler.deleteCollege)
+	systemG.GET("/colleges/tree", handler.getCollegeTree) // tree done
 
 	// profession
 	systemG.POST("/professions", handler.createProfession)

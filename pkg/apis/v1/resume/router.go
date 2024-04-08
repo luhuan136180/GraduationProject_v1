@@ -16,9 +16,10 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 
 	resumeG.Use(middleware.CheckToken(tokenManager, cacheClient))
 
-	resumeG.POST("", handler.createResume)
-	resumeG.DELETE("", handler.deleteResume)
-	resumeG.GET("/list", handler.resumeList)
-	resumeG.GET("/:id/detail", handler.resumeDetail) // 详情
+	resumeG.POST("", handler.createResume)                // done
+	resumeG.GET("/project/tree", handler.projectTreeList) // done
+	resumeG.DELETE("", handler.deleteResume)              // done
+	resumeG.GET("/list", handler.resumeList)              // done
+	resumeG.GET("/:id/detail", handler.resumeDetail)      // 详情
 
 }
