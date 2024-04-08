@@ -23,12 +23,19 @@ type (
 	}
 
 	projectListResp struct {
-		Count    int64           `json:"count"`
-		Projects []model.Project `json:"projects"`
+		Count    int64              `json:"count"`
+		Projects []projectBasicInfo `json:"projects"`
+	}
+
+	projectBasicInfo struct {
+		ID           int64  `json:"id"` // 项目id
+		ProjectName  string `json:"project_name"`
+		ProjectTtile string `json:"title"`
+
+		Status model.ProjectStatus `json:"status"` // 项目状态
 	}
 
 	getProjectReq struct {
-		model.ProjectOption
 		Size int `json:"size"`
 		Page int `json:"page"`
 	}
@@ -64,8 +71,7 @@ type (
 	}
 
 	changeStatusReq struct {
-		Status     model.ProjectStatus `json:"status"`
-		ProjectID  int64               `json:"project_id"`
-		StuedntUID string              `json:"stuednt_uid"`
+		Status    model.ProjectStatus `json:"status"`
+		ProjectID int64               `json:"project_id"`
 	}
 )

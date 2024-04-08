@@ -47,7 +47,7 @@ func (h *projectHandler) createProject(c *gin.Context) {
 		encoding.HandleError(c, errutil.ErrInternalServer)
 		return
 	}
-	if Role != model.RoleTypeTeacher {
+	if Role == model.RoleTypeStudent {
 		zap.L().Error("the operator's authority is illegal")
 	}
 
@@ -156,7 +156,9 @@ func (h *projectHandler) projectList(c *gin.Context) {
 	projectList := make([]model.Project, 0)
 	var count int64
 
-	db := h.db.Model(&model.Project{})
+	// 查询通过审核的
+	db := h.db.Model(&model.Project{}).Where("status != ?", 1)
+
 	if request.GetRoleTypeFromCtx(ctx) == model.RoleTypeStudent {
 		db = db.Where("status = ?", model.ProjectStatusPASS)
 	}
@@ -167,17 +169,12 @@ func (h *projectHandler) projectList(c *gin.Context) {
 	if req.Title != "" {
 		db = db.Where("title like ?", "%"+req.Title+"%")
 	}
-	if req.Creator != "" {
-		db = db.Where("creator like ?", "%"+req.Creator+"%")
-	}
-	if req.Auditor != "" {
-		db = db.Where("auditor like ?", "%"+req.Auditor+"%")
-	}
-	if len(req.Status) > 0 && request.GetRoleTypeFromCtx(ctx) != model.RoleTypeStudent {
-		db = db.Where("status in (?)", req.Status)
+	if len(req.Professions) != 0 {
+		db = db.Where("profession_hash_id in (?)", req.Professions)
 	}
 
-	if request.GetRoleTypeFromCtx(ctx) != model.RoleTypeSuperAdmin {
+	// 非超管只能看自己学院
+	if user.Role != model.RoleTypeSuperAdmin && user.Role != model.RoleTypeCollegeAdmin {
 		db = db.Where("profession_hash_id = ?", user.ProfessionHashID)
 	}
 
@@ -195,7 +192,17 @@ func (h *projectHandler) projectList(c *gin.Context) {
 		return
 	}
 
-	encoding.HandleSuccess(c, projectListResp{Count: count, Projects: projectList})
+	data := []projectBasicInfo{}
+	for _, project := range projectList {
+		data = append(data, projectBasicInfo{
+			ID:           project.ID,
+			ProjectName:  project.ProjectName,
+			ProjectTtile: project.Title,
+			Status:       project.Status,
+		})
+	}
+
+	encoding.HandleSuccess(c, projectListResp{Count: count, Projects: data})
 }
 
 func (h *projectHandler) getProjects(c *gin.Context) {
@@ -217,6 +224,13 @@ func (h *projectHandler) getProjects(c *gin.Context) {
 		return
 	}
 
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.Size <= 0 || req.Size > 10 {
+		req.Size = 10
+	}
+
 	db := h.db.WithContext(ctx).Model(&model.Project{})
 
 	switch request.GetRoleTypeFromCtx(ctx) {
@@ -226,22 +240,6 @@ func (h *projectHandler) getProjects(c *gin.Context) {
 		db = db.Where("profession_hash_id = ?", user.ProfessionHashID).Where("status = ?", model.ProjectStatusAudit)
 	case model.RoleTypeStudent:
 		db = db.Where("participator_id = ?", user.UID)
-	}
-
-	if req.ProjectName != "" {
-		db = db.Where("project_name like ?", "%"+req.ProjectName+"%")
-	}
-	if req.Title != "" {
-		db = db.Where("title like ?", "%"+req.Title+"%")
-	}
-	if req.Creator != "" {
-		db = db.Where("creator like ?", "%"+req.Creator+"%")
-	}
-	if req.Auditor != "" {
-		db = db.Where("auditor like ?", "%"+req.Auditor+"%")
-	}
-	if len(req.Status) > 0 {
-		db = db.Where("status in (?)", req.Status)
 	}
 
 	if request.GetRoleTypeFromCtx(ctx) != model.RoleTypeSuperAdmin {
@@ -265,7 +263,17 @@ func (h *projectHandler) getProjects(c *gin.Context) {
 		return
 	}
 
-	encoding.HandleSuccess(c, projectListResp{Count: count, Projects: projectList})
+	data := []projectBasicInfo{}
+	for _, project := range projectList {
+		data = append(data, projectBasicInfo{
+			ID:           project.ID,
+			ProjectName:  project.ProjectName,
+			ProjectTtile: project.Title,
+			Status:       project.Status,
+		})
+	}
+
+	encoding.HandleSuccess(c, projectListResp{Count: count, Projects: data})
 }
 
 func (h *projectHandler) projectDetail(c *gin.Context) {
@@ -329,6 +337,7 @@ func (h *projectHandler) projectDetail(c *gin.Context) {
 }
 
 func (h *projectHandler) chooseProject(c *gin.Context) {
+	// 先抢先得
 	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
 	defer cancel()
 
@@ -339,11 +348,10 @@ func (h *projectHandler) chooseProject(c *gin.Context) {
 		return
 	}
 
-	// debug 测试状态用的是 超管，先把这个判断去掉
-	// if request.GetRoleTypeFromCtx(ctx) != model.RoleTypeStudent {
-	// 	zap.L().Error("not student")
-	// 	encoding.HandleError(c, errutil.ErrIllegalOperation)
-	// }
+	if request.GetRoleTypeFromCtx(ctx) != model.RoleTypeStudent && request.GetRoleTypeFromCtx(ctx) != model.RoleTypeSuperAdmin {
+		zap.L().Error("not student")
+		encoding.HandleError(c, errutil.ErrIllegalOperation)
+	}
 
 	found, project, err := dao.GetProjectByID(ctx, h.db, req.ProjectID)
 	if err != nil || !found {
@@ -352,17 +360,25 @@ func (h *projectHandler) chooseProject(c *gin.Context) {
 		return
 	}
 
+	// == 5 表示未被选择
+	if project.Status != 5 {
+		zap.L().Error("project status is not : PASS")
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+	// 已经被选择
+	if project.Participator != "" {
+		zap.L().Error("this project is choose by other")
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
 	_, user, err := dao.GetUserByUID(ctx, h.db, request.GetUserUIDFromCtx(ctx))
 
-	log := &model.ProjectSelectLog{
-		ProjectID:    project.ID,
-		ProjectName:  project.ProjectName,
-		Applicant:    user.Username,
-		ApplicantUID: user.UID,
-	}
-	if err = h.db.WithContext(ctx).Model(&model.ProjectSelectLog{}).Create(log).Error; err != nil {
-		zap.L().Error("create ProjectSelectLog info failed", zap.Error(err))
-		encoding.HandleError(c, errutil.ErrInternalServer)
+	err = dao.UpdateProjectParticipator(ctx, h.db, project.ID, *user)
+	if err != nil {
+		zap.L().Error("dao.UpdateProjectParticipator", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
 		return
 	}
 
@@ -428,39 +444,17 @@ func (h *projectHandler) changeStatus(c *gin.Context) {
 		return
 	}
 
-	switch req.Status {
-	case model.ProjectStatusProceed:
-
-		if project.Status != model.ProjectStatusPASS {
-			zap.L().Error("the project has been selected ", zap.Error(err))
-			encoding.HandleError(c, errutil.ErrIllegalParameter)
-			return
-		}
-
-		// 确认项目的参与学生
-		_, user, err := dao.GetUserByUID(ctx, h.db, req.StuedntUID)
-		if err != nil {
-			zap.L().Error("dao.GetUserByUID", zap.Error(err))
-			encoding.HandleError(c, errutil.ErrIllegalParameter)
-			return
-		}
-
-		if user.Role != model.RoleTypeStudent {
-			zap.L().Error("the user is not student")
-			encoding.HandleError(c, errutil.ErrIllegalParameter)
-			return
-		}
-
-		err = h.db.WithContext(ctx).Model(&model.Project{}).Where("id = ?", project.Status).
-			Updates(map[string]interface{}{"participator": user.Username, "participator_id": user.UID, "status": model.ProjectStatusProceed}).Error
-		if err != nil {
-			zap.L().Error("update project status failed", zap.Error(err))
-			encoding.HandleError(c, errutil.ErrIllegalParameter)
-			return
-		}
-
-		//
+	if request.GetRoleTypeFromCtx(ctx) == model.RoleTypeStudent {
+		zap.L().Error("illegal parameter, user is student")
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
 	}
 
+	err = dao.UpdateProjectStatus(ctx, h.db, project.ID, req.Status)
+	if err != nil {
+		zap.L().Error("dao.UpdateProjectStatus", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
 	encoding.HandleSuccess(c, "success")
 }

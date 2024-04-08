@@ -32,6 +32,17 @@ func UpdateProjectStatus(ctx context.Context, db *gorm.DB, id int64, status mode
 	return err
 }
 
+func UpdateProjectParticipator(ctx context.Context, db *gorm.DB, id int64, user model.User) error {
+	changeInfo := map[string]interface{}{
+		"participator":    user.Username,
+		"participator_id": user.UID,
+		"status":          model.ProjectStatusProceed,
+	}
+	err := db.WithContext(ctx).Model(&model.Project{}).Where("id = ?", id).Updates(changeInfo).Error
+
+	return err
+}
+
 func DeleteProjectByID(ctx context.Context, db *gorm.DB, id int64) error {
 	if err := db.WithContext(ctx).Where("id = ?", id).Delete(&model.Project{}).Error; err != nil {
 		return err

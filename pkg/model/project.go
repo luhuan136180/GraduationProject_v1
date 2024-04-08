@@ -5,6 +5,9 @@ import "gorm.io/datatypes"
 type ProjectStatus int64
 
 const (
+
+	// ps: 状态的流转是： 审核-（管理员审核）-通过审核-（被选择后）-进行-（根据操作）-完成或者失败
+
 	ProjectStatusAudit   ProjectStatus = 1 // 审核
 	ProjectStatusClose   ProjectStatus = 2 // 关闭
 	ProjectStatusProceed ProjectStatus = 3 // 进行
@@ -27,7 +30,7 @@ type Project struct {
 	CreatorUID     string `gorm:"not null; index:idx_uid; type:varchar(32)"`
 	AuditUID       string `gorm:"column:audit_uid;not null; type:varchar(32)"` // admin
 	Auditor        string `gorm:"column:auditor;not null;type:varchar(32)"`
-	Participator   string `gorm:"type:varchar(64)"` // xuesheng
+	Participator   string `gorm:"type:varchar(64)"` // 学生
 	ParticipatorID string `gorm:"type:varchar(64)"`
 }
 
@@ -47,15 +50,14 @@ type ProjectBasicInfo struct {
 	Difficulty  DifficultyType `json:"difficulty"`
 	BackGround  string         `json:"back_ground"`
 	Requirement string         `json:"requirement"`
-	plan        string         `json:"plan"`
+	// Plan        string         `json:"plan"`
 }
 
 type ProjectOption struct {
-	ProjectName string   `json:"project_name"`
-	Title       string   `json:"title"`
-	Creator     string   `json:"creator"`
-	Auditor     string   `json:"auditor"`
-	Status      []string `json:"status"`
+	ProjectName string `json:"project_name"`
+	Title       string `json:"title"`
+	// Creator     string   `json:"creator"`
+	// Auditor     string   `json:"auditor"`
 	Professions []string `json:"professions"` // profession_hash_ids
 }
 
@@ -68,5 +70,5 @@ type ProjectSelectLog struct {
 }
 
 func (ProjectSelectLog) TableName() string {
-	return "projects"
+	return "project_select_log"
 }

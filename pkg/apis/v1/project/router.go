@@ -16,16 +16,16 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 
 	projectG.Use(middleware.CheckToken(tokenManager, cacheClient))
 
-	projectG.POST("", handler.createProject)
-	projectG.DELETE("", handler.deleteProject)
-	projectG.GET("/list", handler.projectList)
+	projectG.POST("", handler.createProject)   // done
+	projectG.DELETE("", handler.deleteProject) // done
+	projectG.GET("/list", handler.projectList) // done
 
-	projectG.GET("/:uid/list", handler.getProjects) // 用户相关列表
-	projectG.GET("/detail", handler.projectDetail)  // 详情
-	projectG.GET("/changeStatus", handler.changeStatus)
+	projectG.GET("/user/list", handler.getProjects)     // 用户相关列表(我的)
+	projectG.GET("/detail", handler.projectDetail)      // 详情 done
+	projectG.GET("/changeStatus", handler.changeStatus) // 更改状态 done
 
-	projectG.GET("/choose", handler.chooseProject) // 学生选择
-	projectG.GET("/audit", handler.auditProject)   // 审核
+	projectG.GET("/choose", handler.chooseProject) // 学生选择 done
+	projectG.GET("/audit", handler.auditProject)   // 审核 废弃
 	projectG.POST("/upload/file")                  // 提交文件
 
 	// projectG.GET("/")

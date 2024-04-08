@@ -72,6 +72,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			new(model.Class),
 			new(model.Profession),
 			new(model.Project),
+			new(model.ProjectSelectLog),
 			new(model.Config),
 			new(model.Resume),
 			new(model.Company),
