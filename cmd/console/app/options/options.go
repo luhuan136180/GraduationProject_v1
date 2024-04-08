@@ -7,6 +7,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"net/http"
 	"v1/pkg/apiserver"
+	"v1/pkg/apiserver/imsystem"
 	"v1/pkg/client/cache"
 	"v1/pkg/client/mysql"
 	"v1/pkg/logger"
@@ -96,5 +97,10 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	}
 
 	apiServer.Server = server
+
+	// 初始化 聊天server/client
+	apiServer.ChatServer = imsystem.InitChatServer(imsystem.ChatServerIp, imsystem.ChatServerPort)
+	imsystem.InitChatClient()
+
 	return apiServer, nil
 }

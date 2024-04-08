@@ -40,13 +40,27 @@ type (
 
 	userListItem struct {
 		Id             string `json:"id"`
-		Account        string `json:"account"`
+		UserName       string `json:"username"`
+		Name           string `json:"name"`
 		Role           string `json:"role"`
-		Username       string `json:"username"`
 		ProfessionName string `json:"profession_name"`
 		ClassName      string `json:"class_name"`
-		Phone          string `json:"phone"`
-		Email          string `json:"email"`
+	}
+
+	getUserDetailResp struct {
+		ID               int64          `json:"id"`
+		UID              string         `json:"uid"` // hash_id
+		Username         string         `json:"username"`
+		Name             string         `json:"name"` // 昵称
+		Role             model.RoleType `json:"role"`
+		Password         string         `json:"password"`
+		ProfessionHashID string         `json:"profession_hash_id"`
+		ProfessionName   string         `json:"profession_name"`
+		ClassHashID      string         `json:"class_hash_id"`
+		ClassName        string         `json:"class_name"`
+
+		Phone string `gorm:"column:phone; type:varchar(32)"`
+		Emial string `gorm:"column:email; type:varchar(32)"`
 	}
 
 	changePwdReq struct {
@@ -86,6 +100,10 @@ type (
 	deleteProfessionrReq struct {
 		HashID string `form:"hash_id"`
 	}
+	getProfessionTreeResp struct {
+		HashID         string `json:"hash_id"`
+		ProfessionName string `json:"profession_name"`
+	}
 
 	createClassReq struct {
 		ProfessionHashID string `json:"profession_hash_id"`
@@ -98,5 +116,10 @@ type (
 
 	deleteClassReq struct {
 		HashID string `form:"hash_id"`
+	}
+
+	getClassTreeResp struct {
+		ClassHashID string `json:"class_hash_id"`
+		ClassInfo   string `json:"class_name"`
 	}
 )

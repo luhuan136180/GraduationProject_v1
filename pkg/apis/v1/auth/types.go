@@ -12,6 +12,7 @@ type (
 
 	loginResp struct {
 		ID       int64          `json:"id"`
+		UID      string         `json:"uid"`
 		Username string         `json:"username"`
 		Name     string         `json:"name"`
 		Role     model.RoleType `json:"role"`

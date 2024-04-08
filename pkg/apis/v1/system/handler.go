@@ -189,7 +189,7 @@ func (h *systemHandler) getUserList(c *gin.Context) {
 	defer cancel()
 
 	req := getUserListReq{}
-	err := c.ShouldBindQuery(&req)
+	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		zap.L().Error("c.ShouldBindQuery", zap.Error(err))
 		encoding.HandleError(c, errutil.ErrIllegalParameter)
@@ -254,20 +254,66 @@ func (h *systemHandler) getUserList(c *gin.Context) {
 		class, _ := classMap[user.ClassHashID]
 
 		items = append(items, userListItem{
-			Account:  user.Username,
-			Username: user.Name,
+			UserName: user.Username,
+			Name:     user.Name,
 			Id:       strconv.FormatInt(user.ID, 10),
 			Role:     string(user.Role),
 
 			ClassName:      class.ClassName,
 			ProfessionName: profession.ProfessionName,
-
-			Phone: user.Phone,
-			Email: user.Phone,
 		})
 	}
 
 	encoding.HandleSuccessList(c, num, items)
+}
+
+func (h *systemHandler) getUserDetail(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	idStr := c.Param("id")
+	if idStr == "" {
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	found, user, err := dao.GetUserByID(ctx, h.db, idStr)
+	if err != nil || !found {
+		zap.L().Error("dao.GetUserByID error", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrEditUserInfo)
+		return
+	}
+
+	_, profession, err := dao.GetProfessionByHashID(ctx, h.db, user.ProfessionHashID)
+	if err != nil {
+		zap.L().Error("dao.GetProfessionByHashID error", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrEditUserInfo)
+		return
+	}
+
+	_, class, err := dao.GetClassByHashID(ctx, h.db, user.ClassHashID)
+	if err != nil {
+		zap.L().Error("dao.GetProfessionByHashID error", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrEditUserInfo)
+		return
+	}
+
+	data := getUserDetailResp{
+		ID:               user.ID,
+		UID:              user.UID,
+		Username:         user.Username,
+		Name:             user.Name,
+		Role:             user.Role,
+		ProfessionHashID: profession.HashID,
+		ProfessionName:   profession.ProfessionName,
+		ClassHashID:      class.ClassHashID,
+		ClassName:        class.ClassName,
+
+		Phone: user.Phone,
+		Emial: user.Emial,
+	}
+
+	encoding.HandleSuccess(c, data)
 }
 
 func (h *systemHandler) editUserInfo(c *gin.Context) {
@@ -377,7 +423,7 @@ func (h *systemHandler) resetUserPWD(c *gin.Context) {
 		encoding.HandleError(c, errutil.ErrInternalServer)
 		return
 	}
-	if Role != model.RoleTypeSuperAdmin || Role != model.RoleTypeCollegeAdmin {
+	if Role != model.RoleTypeSuperAdmin && Role != model.RoleTypeCollegeAdmin {
 		zap.L().Error("the operator's authority is illegal")
 	}
 
@@ -388,7 +434,7 @@ func (h *systemHandler) resetUserPWD(c *gin.Context) {
 		encoding.HandleError(c, errutil.ErrIllegalParameter)
 		return
 	}
-	id := c.Param("uid")
+	id := c.Param("id")
 	ok, _, err := dao.GetUserByID(ctx, h.db, id)
 	if !ok {
 		zap.L().Error("this user not  exists")
@@ -464,7 +510,7 @@ func (s *systemHandler) createCollege(c *gin.Context) {
 	}
 	if found {
 		zap.L().Error("this profession account is already exists")
-		encoding.HandleError(c, errutil.NewError(400, "account already exists"))
+		encoding.HandleError(c, errutil.NewError(400, "college already exists"))
 		return
 	}
 
@@ -514,7 +560,7 @@ func (h *systemHandler) deleteCollege(c *gin.Context) {
 		return
 	}
 
-	// 检测用户是否存在
+	// 检测
 	ok, _, err := dao.GetCollegeByHashID(ctx, h.db, req.CollegeHashID)
 	if err != nil {
 		zap.L().Error("find profession by id failed", zap.Error(err))
@@ -527,7 +573,7 @@ func (h *systemHandler) deleteCollege(c *gin.Context) {
 		return
 	}
 
-	// 删除用户
+	// 删除
 	if err = dao.DeleteCollege(ctx, h.db, req.CollegeHashID); err != nil {
 		zap.L().Error("delete profession failed", zap.Error(err))
 		encoding.HandleError(c, errutil.ErrDeleteUser)
@@ -653,6 +699,29 @@ func (h *systemHandler) deleteProfession(c *gin.Context) {
 	encoding.HandleSuccess(c)
 }
 
+func (h *systemHandler) getProfessionTree(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	professions, err := dao.GetProfessions(ctx, h.db)
+	if err != nil {
+		zap.L().Error("dao.GetProfessions", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrDeleteUser)
+		return
+	}
+
+	var data []getProfessionTreeResp
+
+	for _, profession := range professions {
+		data = append(data, getProfessionTreeResp{
+			HashID:         profession.HashID,
+			ProfessionName: profession.ProfessionName,
+		})
+	}
+
+	encoding.HandleSuccess(c, data)
+}
+
 func (s *systemHandler) createClass(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
 	defer cancel()
@@ -752,4 +821,33 @@ func (h *systemHandler) deleteClass(c *gin.Context) {
 	}
 
 	encoding.HandleSuccess(c)
+}
+
+func (h *systemHandler) getClassTree(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	PHashID := c.Param("profession_hash_id")
+	if PHashID == "" {
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	classes, err := dao.GetClassesByPID(ctx, h.db, PHashID)
+	if err != nil {
+		zap.L().Error("dao.GetClassesByPID", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	var data []getClassTreeResp
+
+	for _, class := range classes {
+		data = append(data, getClassTreeResp{
+			ClassHashID: class.ClassHashID,
+			ClassInfo:   class.ClassName + strconv.Itoa(class.ClassID),
+		})
+	}
+
+	encoding.HandleSuccess(c, data)
 }

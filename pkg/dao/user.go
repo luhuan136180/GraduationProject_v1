@@ -121,7 +121,7 @@ func UpdateUserInfo(ctx context.Context, db *gorm.DB, id string, userInfo model.
 	changeInfo := map[string]interface{}{
 		"name":  userInfo.Name,
 		"phone": userInfo.Phone,
-		"email": userInfo.Phone,
+		"email": userInfo.Emial,
 
 		"profession_hash_id": userInfo.ProfessionHashID,
 		"class_hash_id":      userInfo.ClassHashID,
@@ -201,6 +201,12 @@ func DeleteProfession(ctx context.Context, db *gorm.DB, hashID string) error {
 	return db.WithContext(ctx).Where("hash_id = ?", hashID).Delete(&model.Profession{}).Error
 }
 
+func GetProfessions(ctx context.Context, db *gorm.DB) ([]*model.Profession, error) {
+	var professions []*model.Profession
+	err := db.WithContext(ctx).Model(&model.Profession{}).Find(&professions).Error
+	return professions, err
+}
+
 // class
 func GetClassByHashID(ctx context.Context, db *gorm.DB, ClassHashID string) (bool, model.Class, error) {
 	var ClassItem model.Class
@@ -236,4 +242,9 @@ func InsertClass(ctx context.Context, db *gorm.DB, ClassInfo model.Class) (*mode
 
 func DeleteClass(ctx context.Context, db *gorm.DB, hashID string) error {
 	return db.WithContext(ctx).Where("class_hash_id = ?", hashID).Delete(&model.Class{}).Error
+}
+func GetClassesByPID(ctx context.Context, db *gorm.DB, professionHashID string) ([]*model.Class, error) {
+	var classes []*model.Class
+	err := db.WithContext(ctx).Model(&model.Class{}).Where("profession_hash_id = ?", professionHashID).Find(&classes).Error
+	return classes, err
 }

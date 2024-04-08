@@ -17,23 +17,26 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 
 	systemG.Use(middleware.CheckToken(tokenManager, cacheClient))
 
-	systemG.DELETE("/users", handler.deleteUser)
+	systemG.DELETE("/users", handler.deleteUser) // done
 	systemG.POST("/users", handler.createUser)
-	systemG.GET("/users", handler.getUserList)
-	systemG.PATCH("/users", handler.editUserInfo)
-	systemG.PUT("/users/password", handler.changeUserPwd)
-	systemG.PUT("/users/:uid/password", handler.resetUserPWD)
+	systemG.GET("/users/list", handler.getUserList)          // 用户列表 done
+	systemG.GET("/user/:id/detail", handler.getUserDetail)   // 用户详情 done
+	systemG.PATCH("/users", handler.editUserInfo)            // 编辑用户信息 done
+	systemG.PUT("/users/password", handler.changeUserPwd)    // 废弃
+	systemG.PUT("/users/:id/password", handler.resetUserPWD) // 管理员重置密码 done
 
 	// college
-	systemG.POST("/colleges", handler.createCollege)
+	systemG.POST("/colleges", handler.createCollege) //
 	systemG.DELETE("/colleges", handler.deleteCollege)
 
 	// profession
 	systemG.POST("/professions", handler.createProfession)
 	systemG.DELETE("/professions", handler.deleteProfession)
+	systemG.GET("/profession/tree", handler.getProfessionTree) // tree done
 
 	// class
 	systemG.POST("/classes", handler.createClass)
 	systemG.DELETE("/classes", handler.deleteClass)
+	systemG.GET("/:profession_hash_id/class/tree", handler.getClassTree) // tree done
 
 }

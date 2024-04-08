@@ -9,6 +9,7 @@ import (
 	"v1/pkg/apis/v1/project"
 	"v1/pkg/apis/v1/resume"
 	"v1/pkg/apis/v1/system"
+	"v1/pkg/apiserver/imsystem"
 
 	"v1/pkg/apiserver/middleware"
 	"v1/pkg/client/cache"
@@ -32,6 +33,9 @@ type APIServer struct {
 
 	// mysql client
 	RDBClient *gorm.DB
+
+	// chat server
+	ChatServer *imsystem.Server
 
 	CacheClient cache.Interface
 }

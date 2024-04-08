@@ -11,6 +11,7 @@ import (
 	"v1/pkg/apiserver/encoding"
 	"v1/pkg/apiserver/request"
 	"v1/pkg/client/cache"
+	"v1/pkg/model"
 	"v1/pkg/server/errutil"
 	"v1/pkg/token"
 )
@@ -62,6 +63,21 @@ func findTokenVal(c *gin.Context, getTokenFns ...func(c *gin.Context) string) st
 
 func CheckToken(manager token.Manager, cacheClient cache.Interface) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// debug
+		bearer := c.GetHeader("Authorization")
+		if bearer == "" { // 把没带token的视为 超管
+			ctx := request.WithTokenPayloadToCtx(c.Request.Context(), &token.Payload{
+				ID:       1,
+				Username: "admin",
+				Name:     "默认管理员",
+				UID:      "118321494483855902",
+				Role:     model.RoleTypeSuperAdmin,
+			})
+			c.Request = c.Request.WithContext(ctx)
+			return
+		}
+
+		// !debug
 		tokenVal := findTokenVal(c, tokenFromHeader, tokenFromCookie, tokenFromQuery)
 		if tokenVal == "" {
 			encoding.HandleError(c, errutil.ErrUnauthorized)

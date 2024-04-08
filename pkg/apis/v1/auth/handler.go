@@ -11,6 +11,8 @@ import (
 	"time"
 	v1 "v1/pkg/apis/v1"
 	"v1/pkg/apiserver/encoding"
+	"v1/pkg/apiserver/imsystem"
+	"v1/pkg/apiserver/request"
 	"v1/pkg/captcha"
 	"v1/pkg/client/cache"
 	"v1/pkg/dao"
@@ -100,8 +102,16 @@ func (h *authHandler) login(c *gin.Context) {
 		return
 	}
 
+	err = imsystem.AddChatClient(imsystem.ChatServerIp, imsystem.ChatServerPort, u.UID)
+	if err != nil {
+		zap.L().Error(" imsystem.AddChatClient ", zap.Error(err))
+		encoding.HandleSuccess(c, errutil.ErrInternalServer)
+		return
+	}
+
 	result := loginResp{
 		ID:       u.ID,
+		UID:      u.UID,
 		Username: u.Username,
 		Role:     u.Role,
 		Name:     u.Name,
@@ -131,5 +141,7 @@ func (h *authHandler) createCaptcha(c *gin.Context) {
 }
 
 func (h *authHandler) logout(c *gin.Context) {
+
+	imsystem.DeleteClient(request.GetUserUIDFromCtx(c))
 	encoding.HandleSuccess(c)
 }
