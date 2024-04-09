@@ -19,8 +19,8 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 
 	systemG.DELETE("/users", handler.deleteUser) // done
 	systemG.POST("/users", handler.createUser)
-	systemG.GET("/users/list", handler.getUserList)          // 用户列表 done
-	systemG.GET("/user/:id/detail", handler.getUserDetail)   // 用户详情 done
+	systemG.POST("/users/list", handler.getUserList)         // 用户列表 done
+	systemG.POST("/user/:id/detail", handler.getUserDetail)  // 用户详情 done
 	systemG.PATCH("/users", handler.editUserInfo)            // 编辑用户信息 done
 	systemG.PUT("/users/password", handler.changeUserPwd)    // 废弃
 	systemG.PUT("/users/:id/password", handler.resetUserPWD) // 管理员重置密码 done
@@ -28,16 +28,16 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 	// college
 	systemG.POST("/colleges", handler.createCollege) //
 	systemG.DELETE("/colleges", handler.deleteCollege)
-	systemG.GET("/colleges/tree", handler.getCollegeTree) // tree done
+	systemG.POST("/colleges/tree", handler.getCollegeTree) // tree done
 
 	// profession
 	systemG.POST("/professions", handler.createProfession)
 	systemG.DELETE("/professions", handler.deleteProfession)
-	systemG.GET("/profession/tree", handler.getProfessionTree) // tree done
+	systemG.POST("/profession/tree", handler.getProfessionTree) // tree done
 
 	// class
 	systemG.POST("/classes", handler.createClass)
 	systemG.DELETE("/classes", handler.deleteClass)
-	systemG.GET("/:profession_hash_id/class/tree", handler.getClassTree) // tree done
+	systemG.POST("/:profession_hash_id/class/tree", handler.getClassTree) // tree done
 
 }
