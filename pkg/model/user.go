@@ -7,7 +7,7 @@ type RoleType string
 
 const (
 	RoleTypeSuperAdmin   RoleType = "SuperAdmin"
-	RoleTypeCollegeAdmin RoleType = "CollegeAdmin" // 学院管理员
+	RoleTypeCollegeAdmin RoleType = "CollegeAdmin" //  学院管理员
 	RoleTypeTeacher      RoleType = "Teacher"      // 老师
 	RoleTypeStudent      RoleType = "Student"      // 学生
 	RoleTypeNormal       RoleType = "User"         // 保留（预计给 企业 使用）

@@ -146,6 +146,15 @@ func (s *systemHandler) createUser(c *gin.Context) {
 			encoding.HandleError(c, errutil.ErrIllegalParameter)
 			return
 		}
+	} else {
+		if _, _, err := dao.GetProfessionByHashID(ctx, s.db, req.ProfessionHashID); err != nil {
+			admin, _ := dao.GetSuperProfession(ctx, s.db)
+			req.ProfessionHashID = admin.HashID
+		}
+
+		if found, _, err := dao.GetClassByHashID(ctx, s.db, req.ClassHashID); err != nil || !found {
+			req.ClassHashID = ""
+		}
 	}
 
 	// 账号重复性验证
@@ -284,18 +293,35 @@ func (h *systemHandler) getUserDetail(c *gin.Context) {
 		return
 	}
 
-	_, profession, err := dao.GetProfessionByHashID(ctx, h.db, user.ProfessionHashID)
-	if err != nil {
-		zap.L().Error("dao.GetProfessionByHashID error", zap.Error(err))
-		encoding.HandleError(c, errutil.ErrEditUserInfo)
-		return
+	var profession model.Profession
+	var class model.Class
+	if user.ProfessionHashID != "" {
+		_, profession, err = dao.GetProfessionByHashID(ctx, h.db, user.ProfessionHashID)
+		if err != nil {
+			zap.L().Error("dao.GetProfessionByHashID error", zap.Error(err))
+			encoding.HandleError(c, errutil.ErrEditUserInfo)
+			return
+		}
+	} else {
+		profession.ProfessionName = ""
+		profession.HashID = ""
 	}
 
-	_, class, err := dao.GetClassByHashID(ctx, h.db, user.ClassHashID)
-	if err != nil {
-		zap.L().Error("dao.GetProfessionByHashID error", zap.Error(err))
-		encoding.HandleError(c, errutil.ErrEditUserInfo)
-		return
+	if profession.ProfessionName == "admin" && profession.CollegeName == "admin" {
+		profession.ProfessionName = ""
+		profession.HashID = ""
+	}
+
+	if user.ClassHashID == "" {
+		class.ClassHashID = ""
+		class.ClassName = ""
+	} else {
+		_, class, err = dao.GetClassByHashID(ctx, h.db, user.ClassHashID)
+		if err != nil {
+			zap.L().Error("dao.GetProfessionByHashID error", zap.Error(err))
+			encoding.HandleError(c, errutil.ErrEditUserInfo)
+			return
+		}
 	}
 
 	data := getUserDetailResp{
