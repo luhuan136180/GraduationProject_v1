@@ -116,7 +116,7 @@ type (
 		ClassID          int    `json:"class_id"`
 	}
 	ceateClassResp struct {
-		classHashID string `json:"profession_hash_id"`
+		ClassHashID string `json:"class_hash_id"`
 	}
 
 	deleteClassReq struct {

@@ -798,7 +798,7 @@ func (s *systemHandler) createClass(c *gin.Context) {
 		return
 	}
 
-	encoding.HandleSuccess(c, ceateClassResp{classHashID: class.ClassHashID})
+	encoding.HandleSuccess(c, ceateClassResp{ClassHashID: class.ClassHashID})
 }
 
 func (h *systemHandler) deleteClass(c *gin.Context) {
