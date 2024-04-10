@@ -60,6 +60,10 @@ type (
 		Participator          string `json:"participator"`
 		ParticipatorClassName string `json:"participatorClassName"`
 		ParticipatorClassID   int    `json:"participatorClassID"`
+
+		Flag           bool   `json:"flag""` // 是否上链; false:没有;true:上链
+		ContractHashID string `json:"contract_hash_id"`
+		ContractKeyID  string `json:"contract_key_id"`
 	}
 
 	chooseProjectReq struct {

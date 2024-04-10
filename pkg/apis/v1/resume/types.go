@@ -37,6 +37,10 @@ type (
 		ResumeName      string      `json:"resume_name"`
 		ResumeBasicInfo interface{} `json:"basic_info"`
 		ProjectIDs      []int64     `json:"project_ids"`
+
+		Flag           bool   `json:"flag""` // 是否上链; false:没有;true:上链
+		ContractHashID string `json:"contract_hash_id"`
+		ContractKeyID  string `json:"contract_key_id"`
 	}
 
 	projectBasicInfo struct {
