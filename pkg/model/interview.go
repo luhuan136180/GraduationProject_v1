@@ -26,6 +26,7 @@ type Interview struct {
 	CreatedAt  int64  `gorm:"column:created_at; not null; index:idx_created_at"`
 	Creator    string `gorm:"column:creator; not null; type:varchar(32)"` // teacher
 	CreatorUID string `gorm:"not null; index:idx_uid; type:varchar(32)"`  // 面试发起人
+	Contract
 }
 
 func (Interview) TableName() string {

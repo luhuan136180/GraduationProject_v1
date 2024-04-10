@@ -2,7 +2,9 @@ package utils
 
 import (
 	"crypto"
+	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 )
 
@@ -65,4 +67,18 @@ func HashProfessionID(CollegeHashID, ProfessionName string) string {
 
 func HashClassID(professionHashID, className string, classID int) string {
 	return MD5Hex(fmt.Sprintf("%s$%s$%d", professionHashID, className, classID))
+}
+
+func CreateContentHashBySHA256(v interface{}) (string, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	// 计算序列化后JSON数据的SHA-256哈希值
+	hash := sha256.Sum256(data)
+
+	// 将哈希值转换为十六进制字符串
+	hashID := hex.EncodeToString(hash[:])
+
+	return hashID, nil
 }

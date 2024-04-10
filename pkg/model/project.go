@@ -32,6 +32,7 @@ type Project struct {
 	Auditor        string `gorm:"column:auditor;not null;type:varchar(32)"`
 	Participator   string `gorm:"type:varchar(64)"` // 学生
 	ParticipatorID string `gorm:"type:varchar(64)"`
+	Contract
 }
 
 func (Project) TableName() string {

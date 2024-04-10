@@ -11,6 +11,7 @@ type Resume struct {
 
 	Creator   string `gorm:"column:creator; not null; type:varchar(64)"`
 	CreatedAt int64  `gorm:"column:created_at; not null; index:idx_created_at"`
+	Contract
 }
 
 func (Resume) TableName() string {

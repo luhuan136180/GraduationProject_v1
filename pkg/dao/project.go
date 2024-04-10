@@ -50,3 +50,10 @@ func DeleteProjectByID(ctx context.Context, db *gorm.DB, id int64) error {
 
 	return nil
 }
+
+// 查询未上链的projects
+func FindProjectsUnContract(ctx context.Context, db *gorm.DB) ([]model.Project, error) {
+	var projects []model.Project
+	err := db.WithContext(ctx).Where("flag != ?", "true").Find(projects).Error
+	return projects, err
+}
