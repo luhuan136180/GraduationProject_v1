@@ -1,0 +1,49 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_key",
+        "type": "string"
+      }
+    ],
+    "name": "get",
+    "outputs": [
+      {
+        "internalType": "string[]",
+        "name": "",
+        "type": "string[]"
+      },
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_key",
+        "type": "string"
+      },
+      {
+        "internalType": "string[]",
+        "name": "_strArray",
+        "type": "string[]"
+      },
+      {
+        "internalType": "int256",
+        "name": "_myInt",
+        "type": "int256"
+      }
+    ],
+    "name": "save",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
