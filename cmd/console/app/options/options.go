@@ -10,6 +10,7 @@ import (
 	"v1/pkg/apiserver/imsystem"
 	"v1/pkg/client/cache"
 	"v1/pkg/client/mysql"
+	"v1/pkg/contract"
 	"v1/pkg/logger"
 	"v1/pkg/model"
 	genericoptions "v1/pkg/server/options"
@@ -24,6 +25,7 @@ type ServerRunOptions struct {
 	GenericServerRunOptions *genericoptions.ServerRunOptions
 	RDBOptions              *mysql.Options
 	LoggerOptions           *logger.Options
+	ContractOPtions         *contract.Options
 
 	DebugMode bool
 }
@@ -33,6 +35,7 @@ func NewServerRunOptions() *ServerRunOptions {
 		GenericServerRunOptions: genericoptions.NewServerRunOptions(),
 		RDBOptions:              mysql.NewMysqlOptions(mysql.SetDefaultRdbDbname("graduation_project")),
 		LoggerOptions:           logger.NewLoggerOptions(),
+		ContractOPtions:         contract.NewLoggerOptions(),
 	}
 
 	return s
@@ -44,6 +47,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.GenericServerRunOptions.AddFlags(fs)
 	s.RDBOptions.AddFlags(fss.FlagSet("rdb"))
 	s.LoggerOptions.AddFlags(fss.FlagSet("log"))
+	s.ContractOPtions.AddFlags(fss.FlagSet("contract"))
 
 	return fss
 }
@@ -79,6 +83,8 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			new(model.AuditLog),
 			new(model.College),
 			new(model.Interview),
+			new(model.Configuration),
+			new(model.File),
 		)
 	}
 
@@ -102,6 +108,9 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	// 初始化 聊天server/client
 	apiServer.ChatServer = imsystem.InitChatServer(imsystem.ChatServerIp, imsystem.ChatServerPort)
 	imsystem.InitChatClient()
+
+	// 初始化 contract
+	contract.InitContract(s.ContractOPtions, apiServer.RDBClient)
 
 	return apiServer, nil
 }

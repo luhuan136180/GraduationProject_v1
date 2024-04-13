@@ -16,11 +16,15 @@ const (
 
 )
 
+type ProjectFileList struct {
+	List []int `json:"list"`
+}
+
 type Project struct {
 	ID               int64          `gorm:"primary_key;AUTO_INCREMENT"`
 	ProjectName      string         `gorm:"not null; type:varchar(32)"`
 	ProjectBasicInfo datatypes.JSON `gorm:"type:json"`
-	ProjectFile      []byte         `gorm:"column:project_file"`
+	ProjectFile      []int          `gorm:"column:project_file;serializer:json"`
 	Title            string         `gorm:"type:varchar(32)"`
 	Status           ProjectStatus  `gorm:"not null default:2"`
 	ProfessionHashID string         `gorm:"not null; type:varchar(64)"`

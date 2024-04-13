@@ -211,6 +211,20 @@ func (h *systemHandler) getUserList(c *gin.Context) {
 	if req.Page <= 0 {
 		req.Page = 1
 	}
+
+	if len(req.Status) == 1 && req.Status[0] == "" {
+		req.Status = nil
+	}
+	if len(req.ClassHashIDs) == 1 && req.ClassHashIDs[0] == "" {
+		req.ClassHashIDs = nil
+	}
+	if len(req.ProfessionHashIDs) == 1 && req.ProfessionHashIDs[0] == "" {
+		req.ProfessionHashIDs = nil
+	}
+	if len(req.RoleTypes) == 1 && string(req.RoleTypes[0]) == "" {
+		req.RoleTypes = nil
+	}
+
 	num, userList, err := dao.GETUserList(ctx, h.db, req.Page, req.Size, req.UserOption)
 	if err != nil {
 		zap.L().Error("dao.GETUserList error", zap.Error(err))

@@ -69,3 +69,9 @@ func UpdateInterviewStatus(ctx context.Context, db *gorm.DB, id int64, status mo
 	err := db.WithContext(ctx).Model(&model.Interview{}).Where("id = ?", id).Updates(changeInfo).Error
 	return err
 }
+
+func FindInterviewsUnContract(ctx context.Context, db *gorm.DB) ([]model.Interview, error) {
+	var interviews []model.Interview
+	err := db.WithContext(ctx).Where("flag != ?", true).Find(&interviews).Error
+	return interviews, err
+}

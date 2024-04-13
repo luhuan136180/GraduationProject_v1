@@ -51,3 +51,9 @@ func DeleteResumeByID(ctx context.Context, db *gorm.DB, id int64) error {
 
 	return nil
 }
+
+func FindResumesUnContract(ctx context.Context, db *gorm.DB) ([]model.Resume, error) {
+	var projects []model.Resume
+	err := db.WithContext(ctx).Where("flag != ?", true).Find(&projects).Error
+	return projects, err
+}

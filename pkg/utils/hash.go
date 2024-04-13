@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"v1/pkg/model"
 )
 
 func MD5(str string) []byte {
@@ -69,7 +70,8 @@ func HashClassID(professionHashID, className string, classID int) string {
 	return MD5Hex(fmt.Sprintf("%s$%s$%d", professionHashID, className, classID))
 }
 
-func CreateContentHashBySHA256(v interface{}) (string, error) {
+// 用结构体生成hash的时候，需要确保 model.Contract 是空的
+func createContentHashBySHA256(v interface{}) (string, error) {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return "", err
@@ -81,4 +83,19 @@ func CreateContentHashBySHA256(v interface{}) (string, error) {
 	hashID := hex.EncodeToString(hash[:])
 
 	return hashID, nil
+}
+
+func CreeateSHA256ForProject(data model.Project) (string, error) {
+	data.Contract = model.Contract{} // 必须
+	return createContentHashBySHA256(data)
+}
+
+func CreeateSHA256ForResume(data model.Resume) (string, error) {
+	data.Contract = model.Contract{} // 必须
+	return createContentHashBySHA256(data)
+}
+
+func CreeateSHA256ForInterview(data model.Interview) (string, error) {
+	data.Contract = model.Contract{} // 必须
+	return createContentHashBySHA256(data)
 }

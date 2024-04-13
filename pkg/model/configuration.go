@@ -10,9 +10,9 @@ const (
 
 // 配置存储表
 type Configuration struct {
-	ID      int              `gorm:"column:id;primary_key;AUTO_INCREMENT"`
-	Tag     ConfigurationTag `gorm:"column:tag; not null; type: varchar(64)"`
-	Content interface{}      `gorm:"column:content; not null"`
+	ID      int         `gorm:"column:id;primary_key;AUTO_INCREMENT"`
+	Tag     string      `gorm:"column:tag; not null; type:varchar(64)"`
+	Content interface{} `gorm:"column:content; type:json; serializer:json"`
 }
 
 type ContractConfig struct {

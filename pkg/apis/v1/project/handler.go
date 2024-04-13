@@ -3,6 +3,7 @@ package project
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -144,6 +145,10 @@ func (h *projectHandler) projectList(c *gin.Context) {
 	}
 	if req.Size <= 0 || req.Size > 10 {
 		req.Size = 10
+	}
+
+	if len(req.Professions) == 1 && (req.Professions[0] == "string" || req.Professions[0] == "") {
+		req.Professions = nil
 	}
 
 	user, err := dao.GetUserByUsername(ctx, h.db, request.GetUsernameFromCtx(ctx))
@@ -457,4 +462,57 @@ func (h *projectHandler) changeStatus(c *gin.Context) {
 		return
 	}
 	encoding.HandleSuccess(c, "success")
+}
+
+func (h *projectHandler) uploadFile(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	idStr := c.Param("id")
+	if idStr == "" {
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		zap.L().Error("strconv.Atoi", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	_, project, err := dao.GetProjectByID(ctx, h.db, int64(id))
+	if err != nil {
+		zap.L().Error("dao.GetProjectByID", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		zap.L().Error("c.FormFile ERR:", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	dst := fmt.Sprintf("./file/%s", file.Filename)
+
+	// 上传
+	c.SaveUploadedFile(file, dst)
+
+	fileInfo, err := dao.InsterFile(ctx, h.db, model.File{FileName: file.Filename, FilePath: dst})
+	if err != nil {
+		zap.L().Error("dao.InsterFile", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	err = dao.UpdateProjectFiles(ctx, h.db, project.ID, fileInfo.ID)
+	if err != nil {
+		zap.L().Error("dao.UpdateProjectFiles", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+	//
+	encoding.HandleSuccess(c, "upload success")
 }

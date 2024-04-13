@@ -34,9 +34,12 @@ func UpdateProjectStatus(ctx context.Context, db *gorm.DB, id int64, status mode
 
 func UpdateProjectParticipator(ctx context.Context, db *gorm.DB, id int64, user model.User) error {
 	changeInfo := map[string]interface{}{
-		"participator":    user.Username,
-		"participator_id": user.UID,
-		"status":          model.ProjectStatusProceed,
+		"participator":     user.Username,
+		"participator_id":  user.UID,
+		"status":           model.ProjectStatusProceed,
+		"flag":             false,
+		"contract_hash_id": nil,
+		"contract_key_id":  nil,
 	}
 	err := db.WithContext(ctx).Model(&model.Project{}).Where("id = ?", id).Updates(changeInfo).Error
 
@@ -54,6 +57,29 @@ func DeleteProjectByID(ctx context.Context, db *gorm.DB, id int64) error {
 // 查询未上链的projects
 func FindProjectsUnContract(ctx context.Context, db *gorm.DB) ([]model.Project, error) {
 	var projects []model.Project
-	err := db.WithContext(ctx).Where("flag != ?", "true").Find(projects).Error
+	err := db.WithContext(ctx).Where("flag != ?", true).Find(&projects).Error
 	return projects, err
+}
+
+func UpdateProjectFiles(ctx context.Context, db *gorm.DB, id int64, fileID int) error {
+	_, project, err := GetProjectByID(ctx, db, id)
+	if err != nil {
+		return err
+	}
+	var list []int
+	if project.ProjectFile == nil {
+		list = make([]int, 0)
+	} else {
+		list = project.ProjectFile
+	}
+	list = append(list, fileID)
+
+	changeInfo := map[string]interface{}{
+		"project_file":     list,
+		"flag":             false,
+		"contract_hash_id": nil,
+		"contract_key_id":  nil,
+	}
+	err = db.WithContext(ctx).Model(&model.Project{}).Where("id = ?", id).Updates(changeInfo).Error
+	return err
 }
