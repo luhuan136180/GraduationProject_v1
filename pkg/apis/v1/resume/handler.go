@@ -174,7 +174,9 @@ func (h *resumeHandler) resumeList(c *gin.Context) {
 	if request.GetRoleTypeFromCtx(ctx) == model.RoleTypeStudent { // 学生只能看到自己的
 		db = db.Where("creator = ?", user.Username)
 	} else {
-		db = db.Where("user_name = (?)", req.UserName)
+		if len(req.UserName) != 0 {
+			db = db.Where("user_name = (?)", req.UserName)
+		}
 	}
 
 	if req.Title != "" {
