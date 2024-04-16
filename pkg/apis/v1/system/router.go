@@ -17,6 +17,7 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 
 	systemG.Use(middleware.CheckToken(tokenManager, cacheClient))
 
+	systemG.GET("/users/list", handler.userListTest)
 	systemG.DELETE("/users", handler.deleteUser) // done
 	systemG.POST("/users", handler.createUser)
 	systemG.POST("/users/list", handler.getUserList)         // 用户列表 done

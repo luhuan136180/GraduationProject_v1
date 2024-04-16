@@ -190,19 +190,19 @@ func (client *Client) SaveInterview(ctx context.Context, db *gorm.DB) error {
 }
 
 func (client *Client) Save(ctx context.Context, db *gorm.DB) error {
-	err := client.SaveProject(ctx, db)
-	if err != nil {
-		zap.L().Error("save project failed:", zap.Error(err))
-		return err
-	}
+	// err := client.SaveProject(ctx, db)
+	// if err != nil {
+	// 	zap.L().Error("save project failed:", zap.Error(err))
+	// 	return err
+	// }
+	//
+	// err = client.SaveResume(ctx, db)
+	// if err != nil {
+	// 	zap.L().Error("save project failed:", zap.Error(err))
+	// 	return err
+	// }
 
-	err = client.SaveResume(ctx, db)
-	if err != nil {
-		zap.L().Error("save project failed:", zap.Error(err))
-		return err
-	}
-
-	err = client.SaveInterview(ctx, db)
+	err := client.SaveInterview(ctx, db)
 	if err != nil {
 		zap.L().Error("save project failed:", zap.Error(err))
 		return err

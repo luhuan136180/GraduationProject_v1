@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -29,6 +30,24 @@ func newSystemHandler(option systemHandlerOption) *systemHandler {
 	return &systemHandler{
 		systemHandlerOption: option,
 	}
+}
+
+func (s *systemHandler) userListTest(c *gin.Context) {
+	type resp struct {
+		Total int64        `json:"total"`
+		Items []model.User `json:"items"`
+	}
+
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	total, users, err := dao.GETUserList(ctx, s.db, 1, 10, model.UserOption{})
+	if err != nil {
+		zap.L().Error("dao.GETUserList", zap.Error(err))
+		encoding.HandleError(c, errors.New("get users list err"))
+		return
+	}
+	encoding.HandleSuccess(c, resp{Total: total, Items: users})
 }
 
 // API

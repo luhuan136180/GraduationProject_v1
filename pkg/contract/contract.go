@@ -58,7 +58,7 @@ func InitContract(option *Options, db *gorm.DB) {
 	}
 	// 写到这里了
 	go func() {
-		ticker := time.NewTicker(10 * time.Minute)
+		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
 		fmt.Println("start .......contract")
 		for {
