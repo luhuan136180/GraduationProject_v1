@@ -137,6 +137,17 @@ func UpdateUserInfo(ctx context.Context, db *gorm.DB, id string, userInfo model.
 	return nil
 }
 
+func InsterTouxiang(ctx context.Context, db *gorm.DB, uid string, dst string) error {
+	changeInfo := map[string]interface{}{
+		"head": dst,
+	}
+	if err := db.WithContext(ctx).Model(&model.User{}).Where("uid = ?", uid).Updates(changeInfo).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // college
 func GetCollegeByHashID(ctx context.Context, db *gorm.DB, collegeHashID string) (bool, model.College, error) {
 	var collegeItem model.College

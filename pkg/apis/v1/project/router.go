@@ -27,6 +27,7 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 	projectG.POST("/choose", handler.chooseProject)       // 学生选择 done
 	projectG.GET("/audit", handler.auditProject)          // 审核 废弃
 	projectG.POST("/:id/upload/file", handler.uploadFile) // 提交文件
+	projectG.POST("/upload/file", handler.uploadonlyFile) // 单纯上交文件
 
 	// projectG.GET("/")
 }

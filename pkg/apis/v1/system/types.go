@@ -61,6 +61,7 @@ type (
 
 		Phone string `gorm:"column:phone; type:varchar(32)"`
 		Emial string `gorm:"column:email; type:varchar(32)"`
+		Head  string `json:"head"`
 	}
 
 	changePwdReq struct {

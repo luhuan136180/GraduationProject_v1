@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -370,6 +371,7 @@ func (h *systemHandler) getUserDetail(c *gin.Context) {
 
 		Phone: user.Phone,
 		Emial: user.Emial,
+		Head:  user.Head,
 	}
 
 	encoding.HandleSuccess(c, data)
@@ -932,4 +934,29 @@ func (h *systemHandler) getClassTree(c *gin.Context) {
 	}
 
 	encoding.HandleSuccess(c, data)
+}
+
+func (h *systemHandler) uploaduserTouxiang(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		zap.L().Error("c.FormFile ERR:", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	dst := fmt.Sprintf("./file/touxiang/%s", file.Filename)
+	dstUrl := fmt.Sprintf("http://localhost:9090/api/v1/system/user/fs/%s", file.Filename)
+	// 上传
+	c.SaveUploadedFile(file, dst)
+
+	err = dao.InsterTouxiang(ctx, h.db, request.GetUserUIDFromCtx(ctx), dstUrl)
+	if err != nil {
+		zap.L().Error("dao.InsterTouxiang", zap.Error(err))
+		encoding.HandleError(c, errors.New("save failed"))
+		return
+	}
+	encoding.HandleSuccess(c, fmt.Sprintf("http://localhost:9090/api/v1/system/user/fs/%s", file.Filename))
 }

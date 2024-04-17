@@ -38,6 +38,7 @@ type User struct {
 	Status    UserStatus `gorm:"not null"`
 	Phone     string     `gorm:"column:phone; type:varchar(32)"`
 	Emial     string     `gorm:"column:email; type:varchar(32)"`
+	Head      string     `json:"column:head"` // 头像
 }
 
 func (User) TableName() string {

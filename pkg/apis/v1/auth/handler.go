@@ -116,6 +116,7 @@ func (h *authHandler) login(c *gin.Context) {
 		Role:     u.Role,
 		Name:     u.Name,
 		Token:    tokenStr,
+		Head:     u.Head,
 	}
 	encoding.HandleSuccess(c, &result)
 }

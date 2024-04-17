@@ -17,6 +17,7 @@ type (
 		Name     string         `json:"name"`
 		Role     model.RoleType `json:"role"`
 		Token    string         `json:"token"`
+		Head     string         `json:"head"`
 	}
 
 	createCaptchaResp struct {

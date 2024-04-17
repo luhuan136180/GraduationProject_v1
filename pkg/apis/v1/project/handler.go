@@ -516,3 +516,29 @@ func (h *projectHandler) uploadFile(c *gin.Context) {
 	//
 	encoding.HandleSuccess(c, "upload success")
 }
+
+func (h *projectHandler) uploadonlyFile(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		zap.L().Error("c.FormFile ERR:", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	dst := fmt.Sprintf("./file/%s", file.Filename)
+
+	// 上传
+	c.SaveUploadedFile(file, dst)
+
+	fileInfo, err := dao.InsterFile(ctx, h.db, model.File{FileName: file.Filename, FilePath: dst})
+	if err != nil {
+		zap.L().Error("dao.InsterFile", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	encoding.HandleSuccess(c, fmt.Sprintf("upload success, file name:%v", fileInfo.FileName))
+}
