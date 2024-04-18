@@ -18,6 +18,7 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 
 	authG.POST("/login", handler.login)
 	authG.GET("/captcha", handler.createCaptcha)
+	authG.StaticFS("/fs/", gin.Dir("file/touxiang/", true)) // 获取头像
 	// authG.GET("/license", handler.licenseInfo)      // 获取license信息
 	// authG.POST("/license", handler.registerLicense) // 激活license
 

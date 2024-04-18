@@ -948,7 +948,7 @@ func (h *systemHandler) uploaduserTouxiang(c *gin.Context) {
 	}
 
 	dst := fmt.Sprintf("./file/touxiang/%s", file.Filename)
-	dstUrl := fmt.Sprintf("http://localhost:9090/api/v1/system/user/fs/%s", file.Filename)
+	dstUrl := fmt.Sprintf("http://localhost:9090/api/v1/auth/fs/%s", file.Filename)
 	// 上传
 	c.SaveUploadedFile(file, dst)
 
@@ -958,5 +958,5 @@ func (h *systemHandler) uploaduserTouxiang(c *gin.Context) {
 		encoding.HandleError(c, errors.New("save failed"))
 		return
 	}
-	encoding.HandleSuccess(c, fmt.Sprintf("http://localhost:9090/api/v1/system/user/fs/%s", file.Filename))
+	encoding.HandleSuccess(c, dstUrl)
 }

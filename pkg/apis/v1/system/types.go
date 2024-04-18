@@ -59,8 +59,8 @@ type (
 		ClassHashID      string         `json:"class_hash_id"`
 		ClassName        string         `json:"class_name"`
 
-		Phone string `gorm:"column:phone; type:varchar(32)"`
-		Emial string `gorm:"column:email; type:varchar(32)"`
+		Phone string `json:"phone"`
+		Emial string `json:"emial"`
 		Head  string `json:"head"`
 	}
 

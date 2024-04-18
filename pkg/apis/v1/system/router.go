@@ -17,8 +17,8 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 
 	systemG.Use(middleware.CheckToken(tokenManager, cacheClient))
 	// 用户个体的API
-	systemG.StaticFS("/user/fs/", gin.Dir("file/touxiang/", true)) // 获取头像
-	systemG.POST("/user/file", handler.uploaduserTouxiang)         // 上传头像
+	systemG.POST("/user/file", handler.uploaduserTouxiang)  // 上传头像
+	systemG.POST("/users/changeinfo", handler.editUserInfo) // 编辑用户信息 done
 
 	// yonghuxitong
 	systemG.GET("/users/list", handler.userListTest)
@@ -26,8 +26,7 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 	systemG.POST("/users", handler.createUser)
 	systemG.POST("/users/list", handler.getUserList)         // 用户列表 done
 	systemG.POST("/user/:id/detail", handler.getUserDetail)  // 用户详情 done
-	systemG.PATCH("/users", handler.editUserInfo)            // 编辑用户信息 done
-	systemG.PUT("/users/password", handler.changeUserPwd)    // 废弃
+	systemG.PUT("/users/password", handler.changeUserPwd)    //
 	systemG.PUT("/users/:id/password", handler.resetUserPWD) // 管理员重置密码 done
 
 	// college
