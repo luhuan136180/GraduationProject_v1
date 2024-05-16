@@ -25,40 +25,40 @@ type Client struct {
 	Options *Options
 }
 
-func InitContract(option *Options, db *gorm.DB) {
+func InitContract(option *Options, db *gorm.DB) *Client {
 	ctx := context.Background()
 
 	if option.NetworkIP == "" {
 		zap.L().Debug("contract option is err.....")
 		fmt.Println("start failed...")
-		return
+		return nil
 	}
 	// 链接合约
 	client, err := newClient(option)
 	if err != nil {
-		return
+		return nil
 	}
 
 	// 存储起始节点
 	_, err = client.SaveValue("start", []string{"start"}, 0)
 	if err != nil {
 		zap.L().Error("client.SaveValue", zap.Error(err))
-		return
+		return nil
 	}
 
 	// 获取起始节点
 	resultArr, _, err := client.GetValue("start")
 	if err != nil {
 		zap.L().Error("client.GetValue err:", zap.Error(err))
-		return
+		return nil
 	}
 
 	if resultArr[0] != "start" {
-		return
+		return nil
 	}
 	// 写到这里了
 	go func() {
-		ticker := time.NewTicker(1 * time.Minute)
+		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
 		fmt.Println("start .......contract")
 		for {
@@ -85,6 +85,7 @@ func InitContract(option *Options, db *gorm.DB) {
 		Tag:     string(model.ContractTAG),
 		Content: contractConfig,
 	})
+	return client
 }
 
 func newClient(option *Options) (*Client, error) {

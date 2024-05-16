@@ -22,4 +22,8 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 	resumeG.POST("/list", handler.resumeList)              // done
 	resumeG.POST("/:id/detail", handler.resumeDetail)      // 详情
 
+	resumeG.GET("/:uid/resume/list", handler.resumeListByUid) // 根据传入的uid获取对应用户的简历列表
+
+	// resumeG.POST("/send", handler.SendResume)                            // 发送简历
+	// resumeG.GET("/:recruitID/resume/list", handler.getResumeByRecruitID) // 获取招聘接收的简历列表
 }

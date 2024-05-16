@@ -46,6 +46,11 @@ func FindInterviewByOption(ctx context.Context, db *gorm.DB, option model.Interv
 	if option.CreatorUID != "" {
 		db = db.Where("creator_uid = ?", option.CreatorUID)
 	}
+
+	if len(option.Status) != 0 {
+		db = db.Where("status in (?)", option.Status)
+	}
+
 	var count int64
 	err := db.WithContext(ctx).Model(&model.Interview{}).Count(&count).Error
 	if err != nil {

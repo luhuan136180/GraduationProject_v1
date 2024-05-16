@@ -70,6 +70,10 @@ func HashClassID(professionHashID, className string, classID int) string {
 	return MD5Hex(fmt.Sprintf("%s$%s$%d", professionHashID, className, classID))
 }
 
+func HashFirmID(FirmName, FirmInfo string) string {
+	return MD5Hex(fmt.Sprintf("%s$%s", FirmName, FirmInfo))
+}
+
 // 用结构体生成hash的时候，需要确保 model.Contract 是空的
 func createContentHashBySHA256(v interface{}) (string, error) {
 	data, err := json.Marshal(v)

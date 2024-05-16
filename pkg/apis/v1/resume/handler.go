@@ -2,6 +2,7 @@ package resume
 
 import (
 	"context"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -59,6 +60,15 @@ func (h *resumeHandler) createResume(c *gin.Context) {
 		return
 	}
 
+	_, profession, err := dao.GetProfessionByHashID(ctx, h.db, user.ProfessionHashID)
+	if err != nil {
+		zap.L().Error("dao.GetProfessionByHashID", zap.Error(err))
+		encoding.HandleError(c, errors.New("get profession failed"))
+		return
+	}
+
+	req.ResumeInfo.PorfessionName = profession.ProfessionName
+	req.ResumeInfo.CollegeName = profession.CollegeName
 	_, err = dao.InsertResume(ctx, h.db, model.Resume{
 		UserUid:    user.UID,
 		UserName:   user.Username,
@@ -111,7 +121,7 @@ func (h *resumeHandler) deleteResume(c *gin.Context) {
 	defer cancel()
 
 	req := deleteResumeReq{}
-	err := c.ShouldBindJSON(&req)
+	err := c.ShouldBind(&req)
 	if err != nil {
 		zap.L().Error("c.ShouldBindJSON", zap.Error(err))
 		encoding.HandleError(c, errutil.ErrIllegalParameter)
@@ -207,10 +217,11 @@ func (h *resumeHandler) resumeList(c *gin.Context) {
 	var data []resumeListRespData
 	for _, resume := range resumeList {
 		data = append(data, resumeListRespData{
-			ID:         resume.ID,
-			ResumeName: resume.ResumeName,
-			UserUID:    resume.UserUid,
-			UserName:   resume.UserName,
+			ID:           resume.ID,
+			ResumeName:   resume.ResumeName,
+			UserUID:      resume.UserUid,
+			UserName:     resume.UserName,
+			ContractFlag: resume.Flag,
 		})
 	}
 
@@ -251,4 +262,66 @@ func (h *resumeHandler) resumeDetail(c *gin.Context) {
 	}
 
 	encoding.HandleSuccess(c, data)
+}
+
+func (h *resumeHandler) resumeListByUid(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	idStr := c.Param("uid")
+	if idStr == "" {
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	_, user, err := dao.GetUserByUID(ctx, h.db, idStr)
+	if err != nil {
+		zap.L().Error("dao.GetUserByUID", zap.Error(err))
+		encoding.HandleError(c, errors.New("this user is not exit"))
+		return
+	}
+
+	if user.Role != model.RoleTypeStudent {
+		zap.L().Info("this user not have resumes")
+		encoding.HandleSuccess(c)
+		return
+	}
+
+	db := h.db.Model(&model.Resume{}).Where("user_uid = ?", user.UID)
+
+	resumeList := make([]model.Resume, 0)
+	var count int64
+
+	err = db.Count(&count).Error
+	if err != nil {
+		zap.L().Error("get project failed", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	err = db.Limit(5).Find(&resumeList).Error
+	if err != nil {
+		zap.L().Error("get project failed", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+	var data []resumeListRespData
+	for _, resume := range resumeList {
+		data = append(data, resumeListRespData{
+			ID:           resume.ID,
+			ResumeName:   resume.ResumeName,
+			UserUID:      resume.UserUid,
+			UserName:     resume.UserName,
+			ContractFlag: resume.Flag,
+		})
+	}
+	encoding.HandleSuccess(c, resumeListResp{Count: count, ResumeList: data})
+}
+
+func (h *resumeHandler) SendResume(c *gin.Context) {
+
+}
+
+func (h *resumeHandler) getResumeByRecruitID(c *gin.Context) {
+
 }

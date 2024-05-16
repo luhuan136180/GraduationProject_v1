@@ -10,24 +10,25 @@ type (
 	}
 
 	deleteResumeReq struct {
-		ResumeID int64 `json:"resume_id"`
+		ResumeID int64 `form:"resume_id"`
 	}
 
 	resumeListReq struct {
-		Page               int `json:"page"`
-		Size               int `json:"size"`
-		model.ResumeOption `json:"resume_option"`
+		Page int `json:"page"`
+		Size int `json:"size"`
+		model.ResumeOption
 	}
 	resumeListResp struct {
-		Count      int64                `json:"count,omitempty"`
+		Count      int64                `json:"total,omitempty"`
 		ResumeList []resumeListRespData `json:"resume_list"`
 	}
 
 	resumeListRespData struct {
-		ID         int64  `json:"id"`
-		ResumeName string `json:"resume_name"`
-		UserUID    string `json:"user_uid"`
-		UserName   string `json:"user_name"`
+		ID           int64  `json:"id"`
+		ResumeName   string `json:"resume_name"`
+		UserUID      string `json:"user_uid"`
+		UserName     string `json:"user_name"`
+		ContractFlag bool   `json:"contract_flag"`
 	}
 
 	resumeDetailResp struct {
@@ -46,5 +47,10 @@ type (
 	projectBasicInfo struct {
 		ID          int64  `json:"id"` // 项目id
 		ProjectName string `json:"project_name"`
+	}
+
+	resumeListByUidResp struct {
+		Count      int64                `json:"total,omitempty"`
+		ResumeList []resumeListRespData `json:"resume_list"`
 	}
 )

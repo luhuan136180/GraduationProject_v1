@@ -49,8 +49,9 @@ type InterviewInfo struct {
 type InterviewOption struct {
 	Title string `json:"title"`
 
-	IntervieweeUID string `json:"interviewee_uid"`
-	CreatorUID     string `json:"creator_uid"`
+	IntervieweeUID string   `json:"interviewee_uid"`
+	CreatorUID     string   `json:"creator_uid"`
+	Status         []string `json:"status"` // 面试状态
 
 	Page int `json:"page"`
 	Size int `json:"size"`

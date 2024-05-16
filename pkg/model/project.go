@@ -24,7 +24,6 @@ type Project struct {
 	ID               int64          `gorm:"primary_key;AUTO_INCREMENT"`
 	ProjectName      string         `gorm:"not null; type:varchar(32)"`
 	ProjectBasicInfo datatypes.JSON `gorm:"type:json"`
-	ProjectFile      []int          `gorm:"column:project_file;serializer:json"` // bug
 	Title            string         `gorm:"type:varchar(32)"`
 	Status           ProjectStatus  `gorm:"not null default:2"`
 	ProfessionHashID string         `gorm:"not null; type:varchar(64)"`
@@ -59,11 +58,13 @@ type ProjectBasicInfo struct {
 }
 
 type ProjectOption struct {
-	ProjectName string `json:"project_name"`
-	Title       string `json:"title"`
+	ProjectName string  `json:"project_name"`
+	Title       string  `json:"title"`
+	Status      []int64 `json:"status"`
 	// Creator     string   `json:"creator"`
 	// Auditor     string   `json:"auditor"`
 	Professions []string `json:"professions"` // profession_hash_ids
+	Ids         []int64  `json:"ids"`
 }
 
 type ProjectSelectLog struct {

@@ -35,7 +35,8 @@ func (s *APIServer) initSystem() (err error) {
 	var errs []error
 
 	errs = append(errs, initSuperAdmin(ctx, s.RDBClient))
-	errs = append(errs, initConfig(ctx, s.RDBClient))
+	// errs = append(errs, initConfig(ctx, s.RDBClient)) --防止重置---屏蔽
+
 	// errs = append(errs, initDefaultBenchmark(ctx, s.RDBClient))
 	// errs = append(errs, initRiskScanTask(ctx, s.RDBClient))
 

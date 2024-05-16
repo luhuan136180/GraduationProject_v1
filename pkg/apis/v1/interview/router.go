@@ -19,9 +19,23 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 	resumeG.POST("", handler.createInterview)    // done
 	resumeG.DELETE("", handler.deleteInterview)  // done
 	resumeG.POST("/list", handler.interviewList) // done
+	resumeG.POST("/list/accept", handler.interviewListAccept)
 
 	// 改变状态
 	resumeG.POST("/change", handler.interviewChangeStatus) // done
 	// 详情
 	resumeG.POST("/:id/detail", handler.interviewDetail) // done
+
+	// 我的招聘
+	resumeG.GET("/myrecruit/list", handler.getMyRecruitList)
+	// 新增招聘信息
+	resumeG.POST("/recruit", handler.createRecruit)
+
+	// 删除招聘信息
+	resumeG.DELETE("/recruit", handler.deleteRecruit)
+
+	resumeG.GET("/recruit/list", handler.getRecruitList)
+
+	resumeG.GET("/recruit/detial/:id", handler.getRecruitDeatial) // 详情
+
 }

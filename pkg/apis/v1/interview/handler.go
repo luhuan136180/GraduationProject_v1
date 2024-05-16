@@ -2,6 +2,7 @@ package interview
 
 import (
 	"context"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -163,6 +164,7 @@ func (h *interviewHandler) interviewList(c *gin.Context) {
 			Title:          req.Title,
 			IntervieweeUID: req.IntervieweeUID,
 			CreatorUID:     req.CreatorUID,
+			Status:         req.Status,
 		})
 	} else if user.Role == model.RoleTypeStudent {
 		count, interviews, err = dao.FindInterviewByOption(ctx, h.db, model.InterviewOption{
@@ -171,6 +173,7 @@ func (h *interviewHandler) interviewList(c *gin.Context) {
 
 			Title:          req.Title,
 			IntervieweeUID: user.UID,
+			Status:         req.Status,
 		})
 	} else if user.Role == model.RoleTypeFirm || user.Role == model.RoleTypeSuperAdmin {
 		count, interviews, err = dao.FindInterviewByOption(ctx, h.db, model.InterviewOption{
@@ -179,6 +182,7 @@ func (h *interviewHandler) interviewList(c *gin.Context) {
 
 			Title:      req.Title,
 			CreatorUID: user.UID,
+			Status:     req.Status,
 		})
 	}
 	if err != nil {
@@ -201,6 +205,88 @@ func (h *interviewHandler) interviewList(c *gin.Context) {
 	}
 
 	encoding.HandleSuccess(c, interviewListResp{Total: count, Data: data})
+}
+
+func (h *interviewHandler) interviewListAccept(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	req := interviewListReq{}
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		zap.L().Error("", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.Size <= 0 || req.Size > 10 {
+		req.Size = 10
+	}
+
+	_, user, err := dao.GetUserByUID(ctx, h.db, request.GetUserUIDFromCtx(ctx))
+	if err != nil {
+		zap.L().Error(" dao.GetUserByUID", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	var interviews []model.Interview
+	var count int64
+	if req.IntervieweeUID != "" || req.CreatorUID != "" {
+		count, interviews, err = dao.FindInterviewByOption(ctx, h.db, model.InterviewOption{
+			Size: req.Size,
+			Page: req.Page,
+
+			Title:          req.Title,
+			IntervieweeUID: req.IntervieweeUID,
+			CreatorUID:     req.CreatorUID,
+			Status:         req.Status,
+		})
+	} else if user.Role == model.RoleTypeStudent {
+		count, interviews, err = dao.FindInterviewByOption(ctx, h.db, model.InterviewOption{
+			Size: req.Size,
+			Page: req.Page,
+
+			Title:          req.Title,
+			IntervieweeUID: user.UID,
+			Status:         req.Status,
+		})
+	} else if user.Role == model.RoleTypeFirm || user.Role == model.RoleTypeSuperAdmin {
+		count, interviews, err = dao.FindInterviewByOption(ctx, h.db, model.InterviewOption{
+			Size: req.Size,
+			Page: req.Page,
+
+			Title:      req.Title,
+			CreatorUID: user.UID,
+			Status:     req.Status,
+		})
+	}
+	if err != nil {
+		zap.L().Error(" dao.FindInterviewByOption", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	data := []interviewListRespOnlyAccpetData{}
+
+	for _, interview := range interviews {
+		basic := interview.Info.(map[string]interface{})
+
+		data = append(data, interviewListRespOnlyAccpetData{
+			ID:             interview.ID,
+			Ttile:          interview.Ttile,
+			Interviewee:    interview.Interviewee,
+			IntervieweeUID: interview.IntervieweeUID,
+			Creator:        interview.Creator,
+			CreatorUID:     interview.CreatorUID,
+			Date:           basic["date"].(string),
+		})
+	}
+
+	encoding.HandleSuccess(c, interviewListOnlyAccpetResp{Total: count, Data: data})
 }
 
 func (h interviewHandler) interviewChangeStatus(c *gin.Context) {
@@ -271,4 +357,161 @@ func (h *interviewHandler) interviewDetail(c *gin.Context) {
 	}
 
 	encoding.HandleSuccess(c, interviewDetailResp{ID: interview.ID, Title: interview.Ttile, Info: interview.Info, Interviewee: interview.Interviewee, Status: interview.Status})
+}
+
+func (h *interviewHandler) getMyRecruitList(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	req := getMyRecruitListReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	_, user, err := dao.GetUserByUID(ctx, h.db, request.GetUserUIDFromCtx(ctx))
+	if err != nil {
+		zap.L().Error("dao.GetUserByUID", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	if user.Role != model.RoleTypeFirm {
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	count, list, err := dao.GetRecruitList(ctx, h.db, user.UID, req.JobName, req.Page, req.Size)
+	if err != nil {
+		zap.L().Error("dao.GetRecruitList", zap.Error(err))
+		encoding.HandleError(c, errors.New("未找到招聘信息"))
+		return
+	}
+
+	encoding.HandleSuccess(c, getMyRecruitListResp{Count: count, Items: list})
+}
+
+func (h *interviewHandler) createRecruit(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	req := createRecruitReq{}
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		zap.L().Error("", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	_, user, err := dao.GetUserByUID(ctx, h.db, request.GetUserUIDFromCtx(ctx))
+	if err != nil {
+		zap.L().Error("dao.GetUserByUID", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	if user.Role != model.RoleTypeFirm {
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	firm, err := dao.GetFirmByHashID(ctx, h.db, user.FirmHashID)
+	if err != nil {
+		zap.L().Error("dao.GetFirmByHashID", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	data := model.Recruit{
+		FirmHashID:   user.FirmHashID,
+		FirmName:     firm.FirmName,
+		JobName:      req.JobName,
+		JobIntroduce: req.JobIntroduce,
+		JobCondition: req.JobCondition,
+		JobSalary:    req.JobSalary,
+
+		CreatorUID: user.UID,
+		Creator:    user.Username,
+	}
+
+	_, err = dao.InsertRecruit(ctx, h.db, data)
+	if err != nil {
+		zap.L().Error("dao.InsertRecruit", zap.Error(err))
+		encoding.HandleError(c, errors.New("创建招聘信息失败"))
+		return
+	}
+
+	encoding.HandleSuccess(c, "success")
+}
+
+func (h *interviewHandler) deleteRecruit(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		zap.L().Error("get recruit id failed", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+	}
+
+	// 鉴权
+	_, user, err := dao.GetUserByUID(ctx, h.db, request.GetUserUIDFromCtx(ctx))
+	if err != nil {
+		zap.L().Error("dao.GetUserByUID", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	if user.Role != model.RoleTypeFirm {
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	err = dao.DeleteRecruit(ctx, h.db, id)
+	if err != nil {
+		zap.L().Error("dao.DeleteRecruit", zap.Error(err))
+		encoding.HandleError(c, errors.New("删除招聘信息失败"))
+		return
+	}
+
+}
+
+func (h *interviewHandler) getRecruitList(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	req := getMyRecruitListReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	count, list, err := dao.GetRecruitList(ctx, h.db, "", req.JobName, req.Page, req.Size)
+	if err != nil {
+		zap.L().Error("dao.GetRecruitList", zap.Error(err))
+		encoding.HandleError(c, errors.New("未找到招聘信息"))
+		return
+	}
+
+	encoding.HandleSuccess(c, getMyRecruitListResp{Count: count, Items: list})
+}
+
+func (h *interviewHandler) getRecruitDeatial(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	id, _ := strconv.Atoi(c.Param("id"))
+
+	recruit, err := dao.GetRecruitByID(ctx, h.db, id)
+	if err != nil {
+		zap.L().Error("dao.GetRecruitByID", zap.Error(err))
+		encoding.HandleError(c, errors.New("未找到招聘信息"))
+		return
+	}
+
+	encoding.HandleSuccess(c, recruit)
 }

@@ -58,6 +58,12 @@ func GetUserByAccount(ctx context.Context, db *gorm.DB, account string) (bool, *
 func InsertUser(ctx context.Context, db *gorm.DB, userInfo model.User) (*model.User, error) {
 	now := time.Now().UnixMilli()
 
+	if model.RoleType(userInfo.Role) == model.RoleTypeStudent {
+		userInfo.EmploymentStatus = model.EmploymentStatusInterview
+	} else {
+		userInfo.EmploymentStatus = model.EmploymentStatusNULL
+	}
+
 	userInfo.CreatedAt = now
 	userInfo.UpdatedAt = now
 	if err := db.WithContext(ctx).Create(&userInfo).Error; err != nil {
@@ -99,6 +105,10 @@ func GETUserList(ctx context.Context, db *gorm.DB, page, size int, userOption mo
 	}
 	if len(userOption.RoleTypes) != 0 {
 		db = db.Where("role in (?)", userOption.RoleTypes)
+	}
+
+	if len(userOption.FirmHashIDs) != 0 {
+		db = db.Where("firm_hash_id in (?)", userOption.FirmHashIDs)
 	}
 
 	if err := db.Model(&model.User{}).Count(&count).Error; err != nil {
@@ -174,13 +184,39 @@ func DeleteCollege(ctx context.Context, db *gorm.DB, hashID string) error {
 	return db.WithContext(ctx).Where("hash_id = ?", hashID).Delete(&model.College{}).Error
 }
 
-func GetColleges(ctx context.Context, db *gorm.DB) ([]*model.College, error) {
+func GetColleges(ctx context.Context, db *gorm.DB, page, size int) (int64, []*model.College, error) {
 	var colleges []*model.College
-	err := db.WithContext(ctx).Model(&model.College{}).Find(&colleges).Error
-	return colleges, err
+	var count int64
+	err := db.WithContext(ctx).Model(&model.College{}).Count(&count).Error
+	if err != nil {
+		return 0, nil, err
+	}
+	if page == 0 && size == 0 {
+		db = db.WithContext(ctx).Model(&model.College{})
+	} else {
+		if page < 0 {
+			page = 1
+		}
+		if size < 0 {
+			size = 10
+		}
+		db = db.Offset((page - 1) * size).Limit(size).WithContext(ctx).Model(&model.College{})
+	}
+
+	err = db.Find(&colleges).Error
+	return count, colleges, err
 }
 
 // profession
+func GetProfessionByCollegeashID(ctx context.Context, db *gorm.DB, collegeHashID string) ([]model.Profession, error) {
+	var professionItems []model.Profession
+	err := db.WithContext(ctx).Model(&model.Profession{}).Where("college_hash_id = ?", collegeHashID).Find(&professionItems).Error
+	if err != nil {
+		return nil, err
+	}
+	return professionItems, nil
+}
+
 func GetProfessionByHashID(ctx context.Context, db *gorm.DB, professionHashID string) (bool, model.Profession, error) {
 	var professionItem model.Profession
 	err := db.WithContext(ctx).Model(&model.Profession{}).Where("hash_id = ?", professionHashID).First(&professionItem).Error
@@ -263,6 +299,10 @@ func InsertClass(ctx context.Context, db *gorm.DB, ClassInfo model.Class) (*mode
 	return &ClassInfo, nil
 }
 
+func DeleteClassByProfession(ctx context.Context, db *gorm.DB, professionHashID string) error {
+	return db.WithContext(ctx).Where("profession_hash_id = ?", professionHashID).Delete(&model.Class{}).Error
+}
+
 func DeleteClass(ctx context.Context, db *gorm.DB, hashID string) error {
 	return db.WithContext(ctx).Where("class_hash_id = ?", hashID).Delete(&model.Class{}).Error
 }
@@ -270,4 +310,21 @@ func GetClassesByPID(ctx context.Context, db *gorm.DB, professionHashID string) 
 	var classes []*model.Class
 	err := db.WithContext(ctx).Model(&model.Class{}).Where("profession_hash_id = ?", professionHashID).Find(&classes).Error
 	return classes, err
+}
+
+func GetClasses(ctx context.Context, db *gorm.DB, classname, professionHashID string, page, size int) (int64, []*model.Class, error) {
+	var classes []*model.Class
+	var count int64
+
+	db = db.WithContext(ctx).Model(&model.Class{}).Where("profession_hash_id = ?", professionHashID)
+	if classname != "" {
+		db = db.Where("class_name LIKE (?))", classes)
+	}
+	err := db.Count(&count).Error
+	if err != nil {
+		return 0, nil, err
+	}
+
+	err = db.Offset((page - 1) * size).Limit(size).Find(&classes).Error
+	return count, classes, err
 }

@@ -21,6 +21,18 @@ func CreateKey(savetype int) string {
 	return utils.MD5Hex(time.Now().String() + string(savetype))
 }
 
+func getSaveTypeStr(saveType int) string {
+	switch saveType {
+	case SaveProjectType:
+		return "项目"
+	case SaveResumeType:
+		return "简历"
+	case SaveInterviewee:
+		return "面试记录"
+	}
+	return ""
+}
+
 func (client *Client) SaveProject(ctx context.Context, db *gorm.DB) error {
 	// 获取 未上链的列表
 	projects, err := dao.FindProjectsUnContract(ctx, db)
@@ -57,23 +69,38 @@ func (client *Client) SaveProject(ctx context.Context, db *gorm.DB) error {
 	}
 
 	//
-	_, err = client.SaveValue(key, hashs, SaveProjectType)
+	Transaction, err := client.SaveValue(key, hashs, SaveProjectType)
 	if err != nil {
 		zap.L().Error("client.SaveValue", zap.Error(err))
 		return err
 	}
+	hash := Transaction.Hash()
+	hashStr := hash.Hex()
 
 	// 存数据库
 	for _, project := range projects {
+		project.BlockHash = hashStr
 		err = db.WithContext(ctx).Model(&model.Project{}).Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
-			DoUpdates: clause.AssignmentColumns([]string{"flag", "contract_hash_id", "contract_key_id"}),
+			DoUpdates: clause.AssignmentColumns([]string{"flag", "contract_hash_id", "contract_key_id", "block_hash"}),
 		}).Create(&project).Error
 		if err != nil {
 			zap.L().Error("update project.Contract config err:", zap.Error(err))
 			return err
 		}
 	}
+
+	_, err = dao.InsertBlockSaveLog(ctx, db, model.BlockSaveLog{
+		BlockTXHash: hashStr,
+		SaveType:    getSaveTypeStr(SaveProjectType),
+		KeyHash:     key,
+		Date:        Transaction.Time().String(),
+	})
+	if err != nil {
+		zap.L().Error("dao.InsertBlockSaveLog", zap.Error(err))
+		return err
+	}
+
 	return nil
 }
 
@@ -113,23 +140,39 @@ func (client *Client) SaveResume(ctx context.Context, db *gorm.DB) error {
 	}
 
 	//
-	_, err = client.SaveValue(key, hashs, SaveResumeType)
+	Transaction, err := client.SaveValue(key, hashs, SaveResumeType)
 	if err != nil {
 		zap.L().Error("client.SaveValue", zap.Error(err))
 		return err
 	}
 
+	hash := Transaction.Hash()
+	hashStr := hash.Hex()
+
 	// 存数据库
 	for _, resume := range resumes {
+		resume.BlockHash = hashStr
 		err = db.WithContext(ctx).Model(&model.Resume{}).Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
-			DoUpdates: clause.AssignmentColumns([]string{"flag", "contract_hash_id", "contract_key_id"}),
+			DoUpdates: clause.AssignmentColumns([]string{"flag", "contract_hash_id", "contract_key_id", "block_hash"}),
 		}).Create(&resume).Error
 		if err != nil {
 			zap.L().Error("update project.Contract config err:", zap.Error(err))
 			return err
 		}
 	}
+
+	_, err = dao.InsertBlockSaveLog(ctx, db, model.BlockSaveLog{
+		BlockTXHash: hashStr,
+		SaveType:    getSaveTypeStr(SaveResumeType),
+		KeyHash:     key,
+		Date:        Transaction.Time().String(),
+	})
+	if err != nil {
+		zap.L().Error("dao.InsertBlockSaveLog", zap.Error(err))
+		return err
+	}
+
 	return nil
 }
 
@@ -169,40 +212,56 @@ func (client *Client) SaveInterview(ctx context.Context, db *gorm.DB) error {
 	}
 
 	//
-	_, err = client.SaveValue(key, hashs, SaveInterviewee)
+	Transaction, err := client.SaveValue(key, hashs, SaveInterviewee)
 	if err != nil {
 		zap.L().Error("client.SaveValue", zap.Error(err))
 		return err
 	}
 
+	hash := Transaction.Hash()
+	hashStr := hash.Hex()
+
 	// 存数据库
 	for _, interview := range interviews {
+		interview.BlockHash = hashStr
 		err = db.WithContext(ctx).Model(&model.Interview{}).Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
-			DoUpdates: clause.AssignmentColumns([]string{"flag", "contract_hash_id", "contract_key_id"}),
+			DoUpdates: clause.AssignmentColumns([]string{"flag", "contract_hash_id", "contract_key_id", "block_hash"}),
 		}).Create(&interview).Error
 		if err != nil {
 			zap.L().Error("update project.Contract config err:", zap.Error(err))
 			return err
 		}
 	}
+
+	_, err = dao.InsertBlockSaveLog(ctx, db, model.BlockSaveLog{
+		BlockTXHash: hashStr,
+		SaveType:    getSaveTypeStr(SaveInterviewee),
+		KeyHash:     key,
+		Date:        Transaction.Time().String(),
+	})
+	if err != nil {
+		zap.L().Error("dao.InsertBlockSaveLog", zap.Error(err))
+		return err
+	}
+
 	return nil
 }
 
 func (client *Client) Save(ctx context.Context, db *gorm.DB) error {
-	// err := client.SaveProject(ctx, db)
-	// if err != nil {
-	// 	zap.L().Error("save project failed:", zap.Error(err))
-	// 	return err
-	// }
+	err := client.SaveProject(ctx, db)
+	if err != nil {
+		zap.L().Error("save project failed:", zap.Error(err))
+		return err
+	}
 	//
-	// err = client.SaveResume(ctx, db)
-	// if err != nil {
-	// 	zap.L().Error("save project failed:", zap.Error(err))
-	// 	return err
-	// }
+	err = client.SaveResume(ctx, db)
+	if err != nil {
+		zap.L().Error("save project failed:", zap.Error(err))
+		return err
+	}
 
-	err := client.SaveInterview(ctx, db)
+	err = client.SaveInterview(ctx, db)
 	if err != nil {
 		zap.L().Error("save project failed:", zap.Error(err))
 		return err

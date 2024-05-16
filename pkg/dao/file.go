@@ -12,3 +12,9 @@ func InsterFile(ctx context.Context, db *gorm.DB, file model.File) (*model.File,
 	}
 	return &file, nil
 }
+
+func GetFileByProjectID(ctx context.Context, db *gorm.DB, projectID int64) ([]model.File, error) {
+	files := make([]model.File, 0)
+	err := db.WithContext(ctx).Where("project_id = ?", projectID).Find(&files).Error
+	return files, err
+}

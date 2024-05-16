@@ -299,6 +299,7 @@ func (h *systemHandler) getUserList(c *gin.Context) {
 		items = append(items, userListItem{
 			UserName: user.Username,
 			Name:     user.Name,
+			Uid:      user.UID,
 			Id:       strconv.FormatInt(user.ID, 10),
 			Role:     string(user.Role),
 
@@ -307,7 +308,7 @@ func (h *systemHandler) getUserList(c *gin.Context) {
 		})
 	}
 
-	encoding.HandleSuccessList(c, num, items)
+	encoding.HandleSuccess(c, getUserListResp{Total: num, Items: items})
 }
 
 func (h *systemHandler) getUserDetail(c *gin.Context) {
@@ -363,11 +364,12 @@ func (h *systemHandler) getUserDetail(c *gin.Context) {
 		UID:              user.UID,
 		Username:         user.Username,
 		Name:             user.Name,
-		Role:             user.Role,
+		Role:             model.RoleMap[user.Role],
 		ProfessionHashID: profession.HashID,
 		ProfessionName:   profession.ProfessionName,
 		ClassHashID:      class.ClassHashID,
 		ClassName:        class.ClassName,
+		EmploymentStatus: user.EmploymentStatus,
 
 		Phone: user.Phone,
 		Emial: user.Emial,
@@ -614,7 +616,7 @@ func (h *systemHandler) deleteCollege(c *gin.Context) {
 	}
 
 	req := deleteCollegeReq{}
-	err := c.ShouldBindJSON(&req)
+	err := c.ShouldBind(&req)
 	if err != nil {
 		zap.L().Error("c.ShouldBindQuery", zap.Error(err))
 		encoding.HandleError(c, errutil.ErrIllegalParameter)
@@ -648,7 +650,7 @@ func (h *systemHandler) getCollegeTree(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
 	defer cancel()
 
-	colleges, err := dao.GetColleges(ctx, h.db)
+	_, colleges, err := dao.GetColleges(ctx, h.db, 0, 0)
 	if err != nil {
 		zap.L().Error("dao.GetProfessions", zap.Error(err))
 		encoding.HandleError(c, errutil.ErrDeleteUser)
@@ -658,6 +660,9 @@ func (h *systemHandler) getCollegeTree(c *gin.Context) {
 	var data []getCollegeTreeResp
 
 	for _, college := range colleges {
+		if college.CollegeName == "admin" {
+			continue
+		}
 		data = append(data, getCollegeTreeResp{
 			HashID:      college.HashID,
 			CollegeName: college.CollegeName,
@@ -665,6 +670,111 @@ func (h *systemHandler) getCollegeTree(c *gin.Context) {
 	}
 
 	encoding.HandleSuccess(c, data)
+}
+
+func (s *systemHandler) collegeList(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	// 验证权限
+	Role := request.GetRoleTypeFromCtx(ctx)
+	if Role == "" {
+		zap.L().Error("login user not hava enough permission")
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	req := collegeListReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindQuery", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	if Role == model.RoleTypeStudent || Role == model.RoleTypeTeacher || Role == model.RoleTypeFirm {
+		zap.L().Error("login user not hava enough permission")
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	count, colleges, err := dao.GetColleges(ctx, s.db, req.Page, req.Size)
+	if err != nil {
+		zap.L().Error("dao.GetProfessions", zap.Error(err))
+		encoding.HandleError(c, errors.New(fmt.Sprintf("get college failed :%v", err.Error())))
+		return
+	}
+
+	var resp []collegeListResp
+	for _, college := range colleges {
+		if college.CollegeName == "admin" {
+			continue
+		}
+		data := collegeListResp{
+			ID:          college.ID,
+			HashID:      college.HashID,
+			CollegeName: college.CollegeName,
+			CreatAt:     college.CreatedAt,
+		}
+		resp = append(resp, data)
+	}
+
+	encoding.HandleSuccessList(c, count, resp)
+}
+
+func (s *systemHandler) getCollegeDetail(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	// 验证权限
+	Role := request.GetRoleTypeFromCtx(ctx)
+	if Role == "" {
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	if Role == model.RoleTypeNormal || Role == model.RoleTypeStudent {
+		zap.L().Error("the operator's authority is illegal")
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	req := getCollegeDetailReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindJSON", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	_, college, err := dao.GetCollegeByHashID(ctx, s.db, req.Uid)
+	if err != nil {
+		zap.L().Error("dao.GetCollegeByHashID", zap.Error(err))
+		encoding.HandleError(c, errors.New("get college failed"))
+		return
+	}
+
+	_, user, err := dao.GetUserByUID(ctx, s.db, college.Creator)
+	if err != nil {
+		if err != gorm.ErrRecordNotFound {
+			zap.L().Error(" dao.GetUserByUID", zap.Error(err))
+			encoding.HandleError(c, errutil.ErrIllegalParameter)
+			return
+		}
+		user = &model.User{}
+	}
+	collegeInfo := model.CollegeInfo{}
+	_ = json.Unmarshal([]byte(college.CollegeInfo), &collegeInfo)
+
+	resp := getCollegeDetailResp{
+		ID:          college.ID,
+		HashID:      college.HashID,
+		CollegeName: college.CollegeName,
+		CollegeInfo: collegeInfo.Info,
+		Creator:     user.Username,
+		CreatedAt:   college.CreatedAt,
+	}
+	encoding.HandleSuccess(c, resp)
 }
 
 func (s *systemHandler) createProfession(c *gin.Context) {
@@ -750,6 +860,7 @@ func (h *systemHandler) deleteProfession(c *gin.Context) {
 	if Role == model.RoleTypeStudent || Role == model.RoleTypeNormal {
 		zap.L().Error("the operator's authority is illegal")
 		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
 	}
 
 	req := deleteProfessionrReq{}
@@ -760,23 +871,17 @@ func (h *systemHandler) deleteProfession(c *gin.Context) {
 		return
 	}
 
-	// 检测用户是否存在
-	ok, _, err := dao.GetProfessionByHashID(ctx, h.db, req.HashID)
-	if err != nil {
-		zap.L().Error("find profession by id failed", zap.Error(err))
-		encoding.HandleError(c, errutil.ErrDeleteUser)
-		return
-	}
-	if !ok {
-		zap.L().Error("failed to delete,the profession is not found")
-		encoding.HandleError(c, errutil.ErrDeleteUser)
+	// 删除班级
+	if err := dao.DeleteClassByProfession(ctx, h.db, req.HashID); err != nil {
+		zap.L().Error("delete class failed", zap.Error(err))
+		encoding.HandleError(c, errors.New("删除班级失败"))
 		return
 	}
 
-	// 删除用户
+	// 删除专业
 	if err = dao.DeleteProfession(ctx, h.db, req.HashID); err != nil {
 		zap.L().Error("delete profession failed", zap.Error(err))
-		encoding.HandleError(c, errutil.ErrDeleteUser)
+		encoding.HandleError(c, errors.New("删除专业失败"))
 		return
 	}
 
@@ -797,13 +902,112 @@ func (h *systemHandler) getProfessionTree(c *gin.Context) {
 	var data []getProfessionTreeResp
 
 	for _, profession := range professions {
+		if profession.CollegeName == "admin" {
+			continue
+		}
 		data = append(data, getProfessionTreeResp{
 			HashID:         profession.HashID,
 			ProfessionName: profession.ProfessionName,
+			CollegeHashID:  profession.CollegeHashID,
 		})
 	}
 
 	encoding.HandleSuccess(c, data)
+}
+
+func (s *systemHandler) professionList(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	// 验证权限
+	Role := request.GetRoleTypeFromCtx(ctx)
+	if Role == "" {
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	if Role == model.RoleTypeNormal || Role == model.RoleTypeStudent {
+		zap.L().Error("the operator's authority is illegal")
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	req := professionListReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindJSON", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	professions, err := dao.GetProfessionByCollegeashID(ctx, s.db, req.HashID)
+	if err != nil {
+		zap.L().Error("dao.GetProfessionByCollegeashID", zap.Error(err))
+		encoding.HandleError(c, errors.New("该学院为创建专业"))
+		return
+	}
+
+	respdata := []professionListRespItem{}
+	for _, profession := range professions {
+		respdata = append(respdata, professionListRespItem{
+			HashID:         profession.HashID,
+			ProfessionName: profession.ProfessionName,
+			CreatedAt:      profession.CreatedAt,
+		})
+	}
+
+	encoding.HandleSuccess(c, professionListResp{Count: len(professions), Items: respdata})
+}
+
+func (s *systemHandler) professionDetail(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	// 验证权限
+	Role := request.GetRoleTypeFromCtx(ctx)
+	if Role == "" {
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	if Role == model.RoleTypeNormal || Role == model.RoleTypeStudent {
+		zap.L().Error("the operator's authority is illegal")
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	req := professionDetailReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindJSON", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	_, profession, err := dao.GetProfessionByHashID(ctx, s.db, req.HashID)
+	if err != nil {
+		zap.L().Error("dao.GetProfessionByHashID", zap.Error(err))
+		encoding.HandleError(c, errors.New("未找到该专业的详情信息"))
+		return
+	}
+
+	_, user, err := dao.GetUserByUID(ctx, s.db, profession.Creator)
+	if err != nil {
+		if err != gorm.ErrRecordNotFound {
+			zap.L().Error("dao.GetUserByUID", zap.Error(err))
+			encoding.HandleError(c, errors.New("未找到用户"))
+			return
+		}
+		user = &model.User{}
+	}
+
+	ProfessionInfo := model.ProfessionInfo{}
+	_ = json.Unmarshal([]byte(profession.ProfessionInfo), &ProfessionInfo)
+
+	profession.ProfessionInfo = ProfessionInfo.Info
+	profession.Creator = user.Username
+
+	encoding.HandleSuccess(c, profession)
 }
 
 func (s *systemHandler) createClass(c *gin.Context) {
@@ -927,6 +1131,9 @@ func (h *systemHandler) getClassTree(c *gin.Context) {
 	var data []getClassTreeResp
 
 	for _, class := range classes {
+		if class.ClassName == "admin" {
+			continue
+		}
 		data = append(data, getClassTreeResp{
 			ClassHashID: class.ClassHashID,
 			ClassInfo:   class.ClassName + strconv.Itoa(class.ClassID),
@@ -959,4 +1166,327 @@ func (h *systemHandler) uploaduserTouxiang(c *gin.Context) {
 		return
 	}
 	encoding.HandleSuccess(c, dstUrl)
+}
+
+func (s *systemHandler) classList(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	req := classListReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindQuery", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.Size <= 0 {
+		req.Size = 10
+	}
+	count, classes, err := dao.GetClasses(ctx, s.db, req.Name, req.ProfessionHashID, req.Page, req.Size)
+	if err != nil {
+		zap.L().Error("dao.GetClasses", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	items := make([]classListRespItem, 0)
+	for _, class := range classes {
+		items = append(items, classListRespItem{
+			ClassID:     class.ClassID,
+			ClassName:   class.ClassName,
+			ClassHashID: class.ClassHashID,
+			CreatAt:     class.CreatedAt,
+		})
+	}
+
+	encoding.HandleSuccess(c, classListResp{Count: count, Items: items})
+}
+
+func (h *systemHandler) firmList(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	// 验证权限
+	Role := request.GetRoleTypeFromCtx(ctx)
+	if Role == "" {
+		zap.L().Error("login user not hava enough permission")
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	req := firmListReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindQuery", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.Size <= 0 {
+		req.Size = 10
+	}
+
+	count, firms, err := dao.GetFirmList(ctx, h.db, req.Name, req.Page, req.Size)
+	if err != nil {
+		zap.L().Error("dao.GetFirmList", zap.Error(err))
+		encoding.HandleError(c, errors.New("未找到对应的企业"))
+		return
+	}
+
+	encoding.HandleSuccess(c, firmListResp{Count: count, Items: firms})
+}
+
+func (h *systemHandler) createFirm(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	req := createFirmReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindQuery", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	_, user, err := dao.GetUserByUID(ctx, h.db, request.GetUserUIDFromCtx(ctx))
+	if err != nil {
+		zap.L().Error("dao.GetUserByUID", zap.Error(err))
+		encoding.HandleError(c, errors.New("未找到登录的用户数据"))
+		return
+	}
+
+	_, err = dao.InsertFirm(ctx, h.db, model.Firm{
+		FirmHashID: utils.HashFirmID(req.FirmName, req.FirmInfo),
+		FirmName:   req.FirmName,
+		FirmInfo:   req.FirmInfo,
+		Creator:    user.Username,
+		CreatorUID: user.UID,
+	})
+	if err != nil {
+		zap.L().Error("dao.InsertFirm", zap.Error(err))
+		encoding.HandleError(c, errors.New("创建企业失败"))
+		return
+	}
+
+	encoding.HandleSuccess(c, "success")
+}
+
+func (h *systemHandler) deleteFirm(c *gin.Context) {
+	// ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	// defer cancel()
+	//
+	// req := deleteFirmReq{}
+	// err := c.ShouldBind(&req)
+	// if err != nil {
+	// 	zap.L().Error("c.ShouldBindQuery", zap.Error(err))
+	// 	encoding.HandleError(c, errutil.ErrIllegalParameter)
+	// 	return
+	// }
+
+}
+
+func (s *systemHandler) createFirmUser(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	// 验证权限
+	Role := request.GetRoleTypeFromCtx(ctx)
+	if Role == "" {
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	if Role == model.RoleTypeNormal || Role == model.RoleTypeStudent {
+		zap.L().Error("the operator's authority is illegal")
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	req := createUserReq{}
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindJSON", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	// 检验密码合规性
+	if !utils.CheckPWD(req.Password) {
+		zap.L().Error("password illegal")
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	// 验证企业的合理性
+	firm, err := dao.GetFirmByHashID(ctx, s.db, req.FirmHashID)
+	if err != nil {
+		zap.L().Error("dao.GetFirmByHashID", zap.Error(err))
+		encoding.HandleError(c, errors.New("该企业未找到"))
+		return
+	}
+
+	// 账号重复性验证
+	ok, _, err := dao.GetUserByAccount(ctx, s.db, req.Account)
+	if ok {
+		zap.L().Error("this user account is already exists")
+		encoding.HandleError(c, errutil.NewError(400, "account already exists"))
+		return
+	}
+	if err != nil {
+		zap.L().Error("dao.GetUserByAccount", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrCreateUser)
+		return
+	}
+
+	user, err := dao.InsertUser(ctx, s.db, model.User{
+		UID:        utils.NextID(),
+		Username:   req.Account,
+		Name:       req.Username,
+		Role:       model.RoleType(req.Role),
+		Password:   utils.MD5Hex(req.Password),
+		FirmHashID: firm.FirmHashID,
+		Creator:    request.GetUsernameFromCtx(ctx),
+		Updater:    request.GetUsernameFromCtx(ctx),
+		Status:     model.UserStatusNormal,
+		Phone:      req.Phone,
+		Emial:      req.Email,
+	})
+	if err != nil {
+		zap.L().Error("dao.InsertUser", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrCreateUser)
+		return
+	}
+
+	encoding.HandleSuccess(c, strconv.FormatInt(user.ID, 10))
+}
+
+func (h *systemHandler) FirmUserList(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	req := getUserListReq{}
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindQuery", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	if req.Size > 10 || req.Size <= 0 {
+		req.Size = 10
+	}
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+
+	if len(req.Status) == 1 && req.Status[0] == "" {
+		req.Status = nil
+	}
+	if len(req.ClassHashIDs) == 1 && req.ClassHashIDs[0] == "" {
+		req.ClassHashIDs = nil
+	}
+	if len(req.ProfessionHashIDs) == 1 && req.ProfessionHashIDs[0] == "" {
+		req.ProfessionHashIDs = nil
+	}
+	if len(req.RoleTypes) == 1 && string(req.RoleTypes[0]) == "" {
+		req.RoleTypes = nil
+	}
+
+	num, userList, err := dao.GETUserList(ctx, h.db, req.Page, req.Size, req.UserOption)
+	if err != nil {
+		zap.L().Error("dao.GETUserList error", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrSelectUserList)
+		return
+	}
+
+	items := make([]userListItem, 0)
+	for _, user := range userList {
+
+		items = append(items, userListItem{
+			UserName: user.Username,
+			Name:     user.Name,
+			Uid:      user.UID,
+			Id:       strconv.FormatInt(user.ID, 10),
+			Role:     string(user.Role),
+		})
+	}
+
+	encoding.HandleSuccess(c, getUserListResp{Total: num, Items: items})
+}
+
+func (s *systemHandler) firmDetail(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	// 验证权限
+	Role := request.GetRoleTypeFromCtx(ctx)
+	if Role == "" {
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	if Role == model.RoleTypeNormal || Role == model.RoleTypeStudent {
+		zap.L().Error("the operator's authority is illegal")
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	req := firmDetailReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindQuery", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	firm, err := dao.GetFirmByHashID(ctx, s.db, req.HashID)
+	if err != nil {
+		zap.L().Error("dao.GetFirmByHashID", zap.Error(err))
+		encoding.HandleError(c, errors.New("该企业未找到"))
+		return
+	}
+
+	encoding.HandleSuccess(c, firm)
+}
+
+func (h *systemHandler) firmTree(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	// 验证权限
+	Role := request.GetRoleTypeFromCtx(ctx)
+	if Role == "" {
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	if Role == model.RoleTypeNormal || Role == model.RoleTypeStudent {
+		zap.L().Error("the operator's authority is illegal")
+		encoding.HandleError(c, errutil.ErrPermissionDenied)
+		return
+	}
+
+	firms, err := dao.GetFirmTree(ctx, h.db)
+	if err != nil {
+		zap.L().Error("dao.GetFirmTree", zap.Error(err))
+		encoding.HandleError(c, errors.New("未获取到企业列表"))
+		return
+	}
+
+	items := make([]firmTreeRespItem, 0)
+	for _, firm := range firms {
+		items = append(items, firmTreeRespItem{
+			FirmHashID: firm.FirmHashID,
+			FirmName:   firm.FirmName,
+		})
+	}
+
+	encoding.HandleSuccess(c, firmTreeResp{Items: items})
 }

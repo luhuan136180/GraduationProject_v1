@@ -10,11 +10,11 @@ type (
 		ProjectName string `json:"project_name"`
 		model.ProjectBasicInfo
 		Title            string `json:"title"`
-		professionHashID string `json:"profession_hash_id"`
+		ProfessionHashID string `json:"profession_hash_id"`
 	}
 
 	deleteProjectReq struct {
-		ID int64 `json:"id"`
+		ID int64 `form:"id"`
 	}
 	projectListReq struct {
 		model.ProjectOption
@@ -23,7 +23,7 @@ type (
 	}
 
 	projectListResp struct {
-		Count    int64              `json:"count"`
+		Count    int64              `json:"total"`
 		Projects []projectBasicInfo `json:"projects"`
 	}
 
@@ -32,12 +32,14 @@ type (
 		ProjectName  string `json:"project_name"`
 		ProjectTtile string `json:"title"`
 
-		Status model.ProjectStatus `json:"status"` // 项目状态
+		Status       string `json:"status"` // 项目状态
+		ContractFlag bool   `json:"contract_flag"`
 	}
 
 	getProjectReq struct {
-		Size int `json:"size"`
-		Page int `json:"page"`
+		Size int     `json:"size"`
+		Page int     `json:"page"`
+		IDs  []int64 `json:"ids"`
 	}
 
 	projectDetailReq struct {
@@ -45,15 +47,15 @@ type (
 	}
 
 	projectDetailResp struct {
-		ID               int64               `json:"id"`
-		ProjectName      string              `json:"projectName"`
-		ProjectBasicInfo datatypes.JSON      `json:"projectBasicInfo"`
-		ProjectFile      []byte              `json:"projectFile"`
-		Title            string              `json:"title"`
-		Status           model.ProjectStatus `json:"status"`
-		ProfessionHashID string              `json:"professionHashID"`
-		ProfessionName   string              `json:"professionName"`
-		CollegeName      string              `json:"collegeName"`
+		ID               int64          `json:"id"`
+		ProjectName      string         `json:"projectName"`
+		ProjectBasicInfo datatypes.JSON `json:"projectBasicInfo"`
+		ProjectFile      []int          `json:"projectFile"`
+		Title            string         `json:"title"`
+		Status           string         `json:"status"`
+		ProfessionHashID string         `json:"professionHashID"`
+		ProfessionName   string         `json:"professionName"`
+		CollegeName      string         `json:"collegeName"`
 
 		Creator               string `json:"creator"`
 		Auditor               string `json:"auditor"`
@@ -77,5 +79,14 @@ type (
 	changeStatusReq struct {
 		Status    model.ProjectStatus `json:"status"`
 		ProjectID int64               `json:"project_id"`
+	}
+
+	fileListReq struct {
+		Ids []int `json:"ids"`
+	}
+
+	fileListResp struct {
+		Count int          `json:"count"`
+		Items []model.File `json:"items"`
 	}
 )

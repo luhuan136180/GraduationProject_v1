@@ -60,26 +60,3 @@ func FindProjectsUnContract(ctx context.Context, db *gorm.DB) ([]model.Project, 
 	err := db.WithContext(ctx).Where("flag != ?", true).Find(&projects).Error
 	return projects, err
 }
-
-func UpdateProjectFiles(ctx context.Context, db *gorm.DB, id int64, fileID int) error {
-	_, project, err := GetProjectByID(ctx, db, id)
-	if err != nil {
-		return err
-	}
-	var list []int
-	if project.ProjectFile == nil {
-		list = make([]int, 0)
-	} else {
-		list = project.ProjectFile
-	}
-	list = append(list, fileID)
-
-	changeInfo := map[string]interface{}{
-		"project_file":     list,
-		"flag":             false,
-		"contract_hash_id": nil,
-		"contract_key_id":  nil,
-	}
-	err = db.WithContext(ctx).Model(&model.Project{}).Where("id = ?", id).Updates(changeInfo).Error
-	return err
-}

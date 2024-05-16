@@ -5,6 +5,8 @@ import "gorm.io/datatypes"
 type UserStatus int
 type RoleType string
 
+var RoleMap map[RoleType]string
+
 const (
 	RoleTypeSuperAdmin   RoleType = "SuperAdmin"
 	RoleTypeCollegeAdmin RoleType = "CollegeAdmin" //  学院管理员
@@ -19,7 +21,20 @@ const (
 
 	UserStatusNormal   UserStatus = 1
 	UserStatusDisabled UserStatus = 2
+
+	EmploymentStatusNULL      string = "-"
+	EmploymentStatusInterview string = "就业中"
+	EmploymentStatusWorking   string = "在实习"
 )
+
+func init() {
+	RoleMap = make(map[RoleType]string)
+
+	RoleMap[RoleTypeStudent] = "学生"
+	RoleMap[RoleTypeTeacher] = "教师"
+	RoleMap[RoleTypeCollegeAdmin] = "学院管理员"
+	RoleMap[RoleTypeFirm] = "企业人员"
+}
 
 type User struct {
 	ID               int64    `gorm:"primary_key;AUTO_INCREMENT"`
@@ -28,17 +43,19 @@ type User struct {
 	Name             string   `gorm:"column:name; not null; type:varchar(64)"`                                 // 昵称
 	Role             RoleType `gorm:"not null; type:varchar(32); default:0"`
 	Password         string   `gorm:"column:password; not null; type:varchar(32)"`
-	ProfessionHashID string   `gorm:"column:profession_hash_id; not null;type:varchar(64)"`
+	ProfessionHashID string   `gorm:"column:profession_hash_id;type:varchar(64)"`
 	ClassHashID      string   `gorm:"column:class_hash_id; type:varchar(64)"`
+	FirmHashID       string   `gorm:"column:firm_hash_id; type:varchar(64)"`
 
-	CreatedAt int64      `gorm:"column:created_at; not null; index:idx_created_at"`
-	Creator   string     `gorm:"column:creator; not null; type:varchar(32)"`
-	UpdatedAt int64      `gorm:"not null; default:0"`
-	Updater   string     `gorm:"column:updater; not null; type:varchar(32)"`
-	Status    UserStatus `gorm:"not null"`
-	Phone     string     `gorm:"column:phone; type:varchar(32)"`
-	Emial     string     `gorm:"column:email; type:varchar(32)"`
-	Head      string     `json:"column:head"` // 头像
+	CreatedAt        int64      `gorm:"column:created_at; not null; index:idx_created_at"`
+	Creator          string     `gorm:"column:creator; not null; type:varchar(32)"`
+	UpdatedAt        int64      `gorm:"not null; default:0"`
+	Updater          string     `gorm:"column:updater; not null; type:varchar(32)"`
+	Status           UserStatus `gorm:"not null"`
+	Phone            string     `gorm:"column:phone; type:varchar(32)"`
+	Emial            string     `gorm:"column:email; type:varchar(32)"`
+	Head             string     `json:"column:head"` // 头像
+	EmploymentStatus string     `gorm:"type:varchar(64)"`
 }
 
 func (User) TableName() string {
@@ -51,6 +68,7 @@ type UserOption struct {
 	ClassHashIDs      []string   `json:"class_hash_ids"`
 	RoleTypes         []RoleType `json:"role_types"`
 	Status            []string   `json:"status"`
+	FirmHashIDs       []string   `json:"firm_hash_i_ds"`
 }
 
 type College struct {
@@ -66,15 +84,15 @@ type College struct {
 }
 
 type Profession struct {
-	HashID      string `gorm:"not null; type:varchar(64); index:idx_profession_hash_id"` // collegename + professionname
-	CollegeName string `gorm:"not null; type:varchar(32)"`
+	HashID      string `gorm:"not null; type:varchar(64); index:idx_profession_hash_id" json:"hash_id"` // collegename + professionname
+	CollegeName string `gorm:"not null; type:varchar(32)" json:"college_name"`
 	// CollegeInfo    string `gorm:"not null; type:varchar(32)"`
-	CollegeHashID  string `gorm:"column:college_hash_id"`
-	ProfessionName string `gorm:"not null; type:varchar(32); index:idx_profession_name"`
-	ProfessionInfo string `gorm:"not null; type:varchar(32)"`
+	CollegeHashID  string `gorm:"column:college_hash_id" json:"college_hash_id"`
+	ProfessionName string `gorm:"not null; type:varchar(32); index:idx_profession_name" json:"profession_name"`
+	ProfessionInfo string `gorm:"not null; type:varchar(32)" json:"profession_info"`
 
-	CreatedAt int64  `gorm:"column:created_at; not null; index:idx_created_at"`
-	Creator   string `gorm:"column:creator; not null; type:varchar(32)"`
+	CreatedAt int64  `gorm:"column:created_at; not null; index:idx_created_at" json:"created_at"`
+	Creator   string `gorm:"column:creator; not null; type:varchar(32)" json:"creator"`
 	UpdatedAt int64  `gorm:"not null; default:0"`
 	Updater   string `gorm:"column:updater; not null; type:varchar(32)"`
 }

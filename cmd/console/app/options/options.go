@@ -76,7 +76,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			new(model.Class),
 			new(model.Profession),
 			new(model.Project),
-			new(model.ProjectSelectLog),
+			// new(model.ProjectSelectLog),
 			new(model.Config),
 			new(model.Resume),
 			new(model.Company),
@@ -85,6 +85,9 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			new(model.Interview),
 			new(model.Configuration),
 			new(model.File),
+			new(model.Firm),
+			new(model.BlockSaveLog),
+			new(model.Recruit),
 		)
 	}
 
@@ -110,7 +113,8 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	imsystem.InitChatClient()
 
 	// 初始化 contract
-	contract.InitContract(s.ContractOPtions, apiServer.RDBClient)
+	blockClient := contract.InitContract(s.ContractOPtions, apiServer.RDBClient)
+	apiServer.BlockClint = blockClient
 
 	return apiServer, nil
 }

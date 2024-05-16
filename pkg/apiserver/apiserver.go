@@ -5,11 +5,13 @@ import (
 	"github.com/robfig/cron/v3"
 	"net/http"
 	"v1/pkg/apis/v1/auth"
+	"v1/pkg/apis/v1/contract"
 	"v1/pkg/apis/v1/interview"
 	"v1/pkg/apis/v1/project"
 	"v1/pkg/apis/v1/resume"
 	"v1/pkg/apis/v1/system"
 	"v1/pkg/apiserver/imsystem"
+	contractServe "v1/pkg/contract"
 
 	"v1/pkg/apiserver/middleware"
 	"v1/pkg/client/cache"
@@ -38,6 +40,9 @@ type APIServer struct {
 	ChatServer *imsystem.Server
 
 	CacheClient cache.Interface
+
+	//
+	BlockClint *contractServe.Client
 }
 
 func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
@@ -90,9 +95,6 @@ func (s *APIServer) installAPIs() {
 	project.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
 	resume.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
 	interview.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
-	// benchmarks.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
-	// dashboard.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
-	// common.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
-	// compliance.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
+	contract.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient, s.BlockClint)
 	// ai.RegisterRouter(apiV1Group, s.TokenManager, s.CacheClient, s.RDBClient)
 }
