@@ -75,7 +75,7 @@ type College struct {
 	ID          int64  `gorm:"primary_key;AUTO_INCREMENT"`
 	HashID      string `gorm:"not null; type:varchar(64); index:idx_college_hash_id"` // collegename + professionname
 	CollegeName string `gorm:"not null; type:varchar(32); index:idx_college_name"`
-	CollegeInfo string `gorm:"not null; type:varchar(32)"`
+	CollegeInfo string `gorm:"not null; type:varchar(256)"`
 
 	CreatedAt int64  `gorm:"column:created_at; not null"`
 	Creator   string `gorm:"column:creator; not null; type:varchar(32)"`
@@ -89,7 +89,7 @@ type Profession struct {
 	// CollegeInfo    string `gorm:"not null; type:varchar(32)"`
 	CollegeHashID  string `gorm:"column:college_hash_id" json:"college_hash_id"`
 	ProfessionName string `gorm:"not null; type:varchar(32); index:idx_profession_name" json:"profession_name"`
-	ProfessionInfo string `gorm:"not null; type:varchar(32)" json:"profession_info"`
+	ProfessionInfo string `gorm:"not null; type:varchar(256)" json:"profession_info"`
 
 	CreatedAt int64  `gorm:"column:created_at; not null; index:idx_created_at" json:"created_at"`
 	Creator   string `gorm:"column:creator; not null; type:varchar(32)" json:"creator"`

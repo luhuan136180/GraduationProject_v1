@@ -316,6 +316,75 @@ func (h *projectHandler) getProjects(c *gin.Context) {
 	encoding.HandleSuccess(c, projectListResp{Count: count, Projects: data})
 }
 
+func (h *projectHandler) getSEEProjects(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	req := getProjectReq{}
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindJSON", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.Size <= 0 || req.Size > 10 {
+		req.Size = 10
+	}
+
+	db := h.db.WithContext(ctx).Model(&model.Project{})
+
+	if len(req.IDs) != 0 {
+		db = db.Where("id in (?)", req.IDs)
+	}
+
+	projectList := make([]model.Project, 0)
+	var count int64
+
+	err = db.Count(&count).Error
+	if err != nil {
+		zap.L().Error("get project failed", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	err = db.Offset((req.Page - 1) * req.Size).Limit(req.Size).Find(&projectList).Error
+	if err != nil {
+		zap.L().Error("get project failed", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	data := []projectBasicInfo{}
+	for _, project := range projectList {
+		var status string
+		switch project.Status {
+		case 1:
+			status = "待审核"
+		case 2:
+			status = "已关闭"
+		case 3:
+			status = "正在进行"
+		case 4:
+			status = "已完成"
+		case 5:
+			status = "待选择"
+		}
+		data = append(data, projectBasicInfo{
+			ID:           project.ID,
+			ProjectName:  project.ProjectName,
+			ProjectTtile: project.Title,
+			Status:       status,
+			ContractFlag: project.Flag,
+		})
+	}
+
+	encoding.HandleSuccess(c, projectListResp{Count: count, Projects: data})
+}
+
 func (h *projectHandler) projectDetail(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
 	defer cancel()
@@ -407,6 +476,11 @@ func (h *projectHandler) projectDetail(c *gin.Context) {
 		CollegeName:           profession.CollegeName,
 		ParticipatorClassName: class.ClassName,
 		ParticipatorClassID:   class.ClassID,
+
+		Flag:           project.Flag,
+		BlockHash:      project.BlockHash,
+		ContractKeyID:  project.ContractKeyID,
+		ContractHashID: project.ContractHashID,
 	}
 
 	encoding.HandleSuccess(c, result)
@@ -543,7 +617,10 @@ func (h *projectHandler) changeStatus(c *gin.Context) {
 
 	db := h.db.WithContext(ctx).Model(&model.Project{})
 	changeInfo := map[string]interface{}{
-		"status": req.Status,
+		"status":           req.Status,
+		"flag":             false,
+		"contract_hash_id": nil,
+		"contract_key_id":  nil,
 	}
 	if req.Status == model.ProjectStatusPASS {
 		changeInfo["auditor"] = user.Username
@@ -633,6 +710,37 @@ func (h *projectHandler) uploadonlyFile(c *gin.Context) {
 	encoding.HandleSuccess(c, fmt.Sprintf("upload success, file name:%v", fileInfo.FileName))
 }
 
+func (h *projectHandler) downFile(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	idStr := c.Param("fileID")
+	if idStr == "" {
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		zap.L().Error("strconv.Atoi", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	var file model.File
+	if err := h.db.WithContext(ctx).Model(&model.File{}).Where("id = ?", id).Find(&file).Error; err != nil {
+		zap.L().Error("strconv.Atoi", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	filePath := file.FilePath
+
+	c.Writer.Header().Add("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.FileName)) // 设置下载文件名
+	c.Writer.Header().Add("Content-Type", "application/octet-stream")
+	c.File(filePath)
+}
+
 func (h *projectHandler) getProjectsByUid(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
 	defer cancel()
@@ -718,7 +826,7 @@ func (h *projectHandler) FileList(c *gin.Context) {
 
 	files := make([]model.File, 0)
 
-	err := h.db.WithContext(ctx).Model(&model.File{}).Where("id in (?)", req.Ids).Find(&files).Error
+	err := h.db.WithContext(ctx).Model(&model.File{}).Where("project_id in (?)", req.Id).Find(&files).Error
 	if err != nil {
 		zap.L().Error("get files failed", zap.Error(err))
 		encoding.HandleError(c, errors.New("get files failed"))

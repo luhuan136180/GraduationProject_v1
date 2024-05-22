@@ -66,6 +66,7 @@ type (
 		Flag           bool   `json:"flag""` // 是否上链; false:没有;true:上链
 		ContractHashID string `json:"contract_hash_id"`
 		ContractKeyID  string `json:"contract_key_id"`
+		BlockHash      string `json:"block_hash"`
 	}
 
 	chooseProjectReq struct {
@@ -82,7 +83,7 @@ type (
 	}
 
 	fileListReq struct {
-		Ids []int `json:"ids"`
+		Id int `json:"project_id"`
 	}
 
 	fileListResp struct {

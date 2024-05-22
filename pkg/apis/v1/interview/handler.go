@@ -65,7 +65,14 @@ func (h *interviewHandler) createInterview(c *gin.Context) {
 		return
 	}
 
-	//
+	// get firm
+	firm, err := dao.GetFirmByHashID(ctx, h.db, creator.FirmHashID)
+	if err != nil {
+		zap.L().Error(" dao.GetUserByUID", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
 	if interviewee.Role != model.RoleTypeStudent {
 		zap.L().Error("role not student")
 		encoding.HandleError(c, errutil.ErrPermissionDenied)
@@ -90,6 +97,7 @@ func (h *interviewHandler) createInterview(c *gin.Context) {
 		IntervieweeUID: interviewee.UID,
 		Creator:        creator.Username,
 		CreatorUID:     creator.UID,
+		FirmName:       firm.FirmName,
 	})
 	if err != nil {
 		zap.L().Error("dao.InsertInterview", zap.Error(err))
@@ -283,6 +291,7 @@ func (h *interviewHandler) interviewListAccept(c *gin.Context) {
 			Creator:        interview.Creator,
 			CreatorUID:     interview.CreatorUID,
 			Date:           basic["date"].(string),
+			FirmName:       interview.FirmName,
 		})
 	}
 
@@ -328,6 +337,18 @@ func (h interviewHandler) interviewChangeStatus(c *gin.Context) {
 		return
 	}
 
+	if req.Comment != "" {
+		changeInfo := map[string]interface{}{
+			"comment": req.Comment,
+		}
+
+		if err := h.db.WithContext(ctx).Model(&model.Interview{}).Where("id = ?", req.ID).Updates(changeInfo).Error; err != nil {
+			zap.L().Error("dao.UpdateInterviewStatus", zap.Error(err))
+			encoding.HandleError(c, errutil.ErrIllegalParameter)
+			return
+		}
+	}
+
 	encoding.HandleSuccess(c, interviewChangeStatusResp{ID: interview.ID, Title: interview.Ttile, info: interview.Info, Interviewee: interview.Interviewee, Status: req.Status})
 }
 
@@ -356,7 +377,25 @@ func (h *interviewHandler) interviewDetail(c *gin.Context) {
 		return
 	}
 
-	encoding.HandleSuccess(c, interviewDetailResp{ID: interview.ID, Title: interview.Ttile, Info: interview.Info, Interviewee: interview.Interviewee, Status: interview.Status})
+	switch interview.Status {
+	case "Proceed":
+		interview.Status = "进行中"
+	case "Accept":
+		interview.Status = "未开始"
+	case "End":
+		interview.Status = "面试结束-通过"
+	case "Failed":
+		interview.Status = "面试结束-未通过"
+	default:
+		interview.Status = "拒绝"
+
+	}
+
+	encoding.HandleSuccess(c, interviewDetailResp{
+		ID: interview.ID, Title: interview.Ttile, Info: interview.Info, Interviewee: interview.Interviewee, Status: interview.Status,
+		Comment: interview.Comment,
+		Flag:    interview.Flag, BlockHash: interview.BlockHash, ContractHashID: interview.ContractHashID, ContractKeyID: interview.ContractKeyID,
+	})
 }
 
 func (h *interviewHandler) getMyRecruitList(c *gin.Context) {
@@ -498,6 +537,35 @@ func (h *interviewHandler) getRecruitList(c *gin.Context) {
 	}
 
 	encoding.HandleSuccess(c, getMyRecruitListResp{Count: count, Items: list})
+}
+
+func (s *interviewHandler) firmDetail(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	// 验证权限
+	Role := request.GetRoleTypeFromCtx(ctx)
+	if Role == "" {
+		encoding.HandleError(c, errutil.ErrInternalServer)
+		return
+	}
+
+	req := firmDetailReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindQuery", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	firm, err := dao.GetFirmByHashID(ctx, s.db, req.HashID)
+	if err != nil {
+		zap.L().Error("dao.GetFirmByHashID", zap.Error(err))
+		encoding.HandleError(c, errors.New("该企业未找到"))
+		return
+	}
+
+	encoding.HandleSuccess(c, firm)
 }
 
 func (h *interviewHandler) getRecruitDeatial(c *gin.Context) {

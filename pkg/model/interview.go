@@ -23,10 +23,13 @@ type Interview struct {
 	IntervieweeUID string          `gorm:"type:varchar(64); not null"`   // 面试者_uid
 	Status         InterviewStatus `gorm:"type:varchar(63); not null"`
 
+	FirmName   string `gorm:"column:firm_name"`
 	CreatedAt  int64  `gorm:"column:created_at; not null; index:idx_created_at"`
 	Creator    string `gorm:"column:creator; not null; type:varchar(32)"` // teacher
 	CreatorUID string `gorm:"not null; index:idx_uid; type:varchar(32)"`  // 面试发起人
 	Contract
+
+	Comment string `gorm:"column:comment;type:varchar(256)"`
 }
 
 func (Interview) TableName() string {

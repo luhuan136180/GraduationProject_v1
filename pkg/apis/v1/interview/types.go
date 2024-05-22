@@ -47,12 +47,14 @@ type (
 		IntervieweeUID string `json:"interviewee_uid"` // uid
 		Creator        string `json:"creator"`         // 面试创建者
 		CreatorUID     string `json:"creator_uid"`
-		Date           string `json:"date"` // 面试时间
+		Date           string `json:"date"`      // 面试时间
+		FirmName       string `json:"firm_name"` // 	公司名称
 	}
 
 	interviewChangeStatusRep struct {
-		ID     int64                 `json:"id"`
-		Status model.InterviewStatus `json:"status"`
+		ID      int64                 `json:"id"`
+		Status  model.InterviewStatus `json:"status"`
+		Comment string                `json:"comment"`
 	}
 	interviewChangeStatusResp struct {
 		ID          int64                 `json:"id"`
@@ -67,8 +69,10 @@ type (
 		Info        interface{}           `json:"info"`
 		Interviewee string                `json:"interviewee"`
 		Status      model.InterviewStatus `json:"status"`
+		Comment     string                `json:"comment"`
 
 		Flag           bool   `json:"flag""` // 是否上链; false:没有;true:上链
+		BlockHash      string `json:"block_hash"`
 		ContractHashID string `json:"contract_hash_id"`
 		ContractKeyID  string `json:"contract_key_id"`
 	}
@@ -78,6 +82,11 @@ type (
 		Size    int    `form:"size"`
 		JobName string `form:"job_name"`
 	}
+
+	firmDetailReq struct {
+		HashID string `form:"hash_id"`
+	}
+
 	getMyRecruitListResp struct {
 		Count int64           `json:"count"`
 		Items []model.Recruit `json:"items"`

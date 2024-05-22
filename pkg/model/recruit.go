@@ -14,3 +14,9 @@ type Recruit struct {
 	Creator    string `gorm:"column:creator; not null; type:varchar(32)" json:"creator"`    // teacher
 	CreatorUID string `gorm:"not null; index:idx_uid; type:varchar(32)" json:"creator_uid"` // 面试发起人
 }
+
+type RecruitResume struct {
+	ID        int64 `gorm:"primary_key;AUTO_INCREMENT"`
+	RecruitID int64 `gorm:"column:recruit_id" json:"id"`
+	ResumeID  int64 `gorm:"column:resume_id"`
+}

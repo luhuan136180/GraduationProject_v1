@@ -35,6 +35,7 @@ func RegisterRouter(group *gin.RouterGroup, tokenManager token.Manager, cacheCli
 	resumeG.DELETE("/recruit", handler.deleteRecruit)
 
 	resumeG.GET("/recruit/list", handler.getRecruitList)
+	resumeG.GET("/firm/detail", handler.firmDetail) // 获取企业信息
 
 	resumeG.GET("/recruit/detial/:id", handler.getRecruitDeatial) // 详情
 

@@ -259,6 +259,11 @@ func (h *resumeHandler) resumeDetail(c *gin.Context) {
 		ResumeName:      resume.ResumeName,
 		ResumeBasicInfo: resume.BasicInfo,
 		ProjectIDs:      resume.ProjectIDs,
+
+		Flag:           resume.Flag,
+		BlockHash:      resume.BlockHash,
+		ContractHashID: resume.ContractHashID,
+		ContractKeyID:  resume.ContractKeyID,
 	}
 
 	encoding.HandleSuccess(c, data)
@@ -318,10 +323,116 @@ func (h *resumeHandler) resumeListByUid(c *gin.Context) {
 	encoding.HandleSuccess(c, resumeListResp{Count: count, ResumeList: data})
 }
 
-func (h *resumeHandler) SendResume(c *gin.Context) {
+func (h *resumeHandler) getListOnBlock(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
 
+	_, user, err := dao.GetUserByUID(ctx, h.db, request.GetUserUIDFromCtx(ctx))
+	if err != nil {
+		zap.L().Error("dao.GetUserByUID", zap.Error(err))
+		encoding.HandleError(c, errors.New("this user is not exit"))
+		return
+	}
+
+	if user.Role != model.RoleTypeStudent {
+		zap.L().Info("this user not have resumes")
+		encoding.HandleSuccess(c)
+		return
+	}
+
+	resumeList := make([]model.Resume, 0)
+	err = h.db.Model(&model.Resume{}).Where("user_uid = ?", user.UID).Where("flag = ?", true).Find(&resumeList).Error
+	if err != nil {
+		zap.L().Error("GET RESUME failed:", zap.Error(err))
+		encoding.HandleError(c, errors.New("获取简历失败"))
+		return
+	}
+
+	var data []resumeListRespData
+	for _, resume := range resumeList {
+		data = append(data, resumeListRespData{
+			ID:           resume.ID,
+			ResumeName:   resume.ResumeName,
+			UserUID:      resume.UserUid,
+			UserName:     resume.UserName,
+			ContractFlag: resume.Flag,
+		})
+	}
+
+	encoding.HandleSuccess(c, resumeListResp{ResumeList: data})
+}
+
+func (h *resumeHandler) SendResume(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
+
+	req := SendResumeResp{}
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindJSON", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	data := model.RecruitResume{
+		RecruitID: req.RecruitID,
+		ResumeID:  req.ResumeID,
+	}
+	if err := h.db.WithContext(ctx).Create(&data).Error; err != nil {
+		zap.L().Error("insert failed:", zap.Error(err))
+		encoding.HandleError(c, errors.New("发送简历失败"))
+		return
+	}
+
+	encoding.HandleSuccess(c, "success")
 }
 
 func (h *resumeHandler) getResumeByRecruitID(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c, v1.DefaultTimeout)
+	defer cancel()
 
+	req := getResumeByRecruitIDReq{}
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		zap.L().Error("c.ShouldBindJSON", zap.Error(err))
+		encoding.HandleError(c, errutil.ErrIllegalParameter)
+		return
+	}
+
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+
+	if req.Size <= 0 {
+		req.Size = 1
+	}
+
+	var resumelist []model.RecruitResume
+	var count int64
+
+	if err := h.db.WithContext(ctx).Model(&model.RecruitResume{}).Where("recruit_id = ?", req.RecruitID).Count(&count).Error; err != nil {
+		zap.L().Error("get  failed:", zap.Error(err))
+		encoding.HandleError(c, errors.New("获取简历失败"))
+		return
+	}
+
+	if err := h.db.WithContext(ctx).Limit(req.Size).Offset((req.Page-1)*req.Size).Model(&model.RecruitResume{}).Where("recruit_id = ?", req.RecruitID).Find(&resumelist).Error; err != nil {
+		zap.L().Error("get failed:", zap.Error(err))
+		encoding.HandleError(c, errors.New("获取简历失败"))
+		return
+	}
+
+	resumeIDs := make([]int64, 0)
+	for _, value := range resumelist {
+		resumeIDs = append(resumeIDs, value.ResumeID)
+	}
+
+	resumes := make([]model.Resume, 0)
+	if err := h.db.Model(&model.Resume{}).Where("id in (?)", resumeIDs).Find(&resumes).Error; err != nil {
+		zap.L().Error("get failed:", zap.Error(err))
+		encoding.HandleError(c, errors.New("获取简历失败"))
+		return
+	}
+
+	encoding.HandleSuccess(c, getResumeByRecruitIDResp{Count: count, Items: resumes})
 }

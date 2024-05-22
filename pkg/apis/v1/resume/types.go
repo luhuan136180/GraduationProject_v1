@@ -40,6 +40,7 @@ type (
 		ProjectIDs      []int64     `json:"project_ids"`
 
 		Flag           bool   `json:"flag""` // 是否上链; false:没有;true:上链
+		BlockHash      string `json:"block_hash"`
 		ContractHashID string `json:"contract_hash_id"`
 		ContractKeyID  string `json:"contract_key_id"`
 	}
@@ -52,5 +53,22 @@ type (
 	resumeListByUidResp struct {
 		Count      int64                `json:"total,omitempty"`
 		ResumeList []resumeListRespData `json:"resume_list"`
+	}
+
+	SendResumeResp struct {
+		RecruitID int64 `json:"recruit_id"`
+		ResumeID  int64 `json:"resume_id"`
+	}
+
+	getResumeByRecruitIDReq struct {
+		RecruitID int64 `json:"recruit_id"`
+
+		Page int `json:"page"`
+		Size int `json:"size"`
+	}
+
+	getResumeByRecruitIDResp struct {
+		Count int64          `json:"count"`
+		Items []model.Resume `json:"items"`
 	}
 )

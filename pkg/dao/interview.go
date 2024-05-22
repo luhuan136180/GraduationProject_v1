@@ -68,7 +68,10 @@ func FindInterviewByOption(ctx context.Context, db *gorm.DB, option model.Interv
 
 func UpdateInterviewStatus(ctx context.Context, db *gorm.DB, id int64, status model.InterviewStatus) error {
 	changeInfo := map[string]interface{}{
-		"status": status,
+		"status":           status,
+		"flag":             false,
+		"contract_hash_id": nil,
+		"contract_key_id":  nil,
 	}
 
 	err := db.WithContext(ctx).Model(&model.Interview{}).Where("id = ?", id).Updates(changeInfo).Error
